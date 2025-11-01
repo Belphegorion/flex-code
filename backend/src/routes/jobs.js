@@ -22,7 +22,13 @@ router.post('/', authenticate, authorize('organizer'), [
   body('description').notEmpty().withMessage('Description is required'),
   body('requiredSkills').isArray({ min: 1 }).withMessage('At least one skill required'),
   body('dateStart').isISO8601().withMessage('Valid start date required'),
-  body('dateEnd').isISO8601().withMessage('Valid end date required'),
+  body('dateEnd').isISO8601().withMessage('Valid end date required')
+    .custom((value, { req }) => {
+      if (new Date(value) < new Date(req.body.dateStart)) {
+        throw new Error('End date cannot be earlier than start date');
+      }
+      return true;
+    }),
   body('payPerPerson').isNumeric().withMessage('Pay must be a number'),
   body('totalPositions').isInt({ min: 1 }).withMessage('At least one position required'),
   validate

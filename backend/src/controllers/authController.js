@@ -1,43 +1,44 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Profile from '../models/Profile.js';
 
 export const register = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { name, email, phone, password, role } = req.body;
 
     // Check if user exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email }).session(session);
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      throw new Error('User already exists');
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user
-    const user = await User.create({
+    const [user] = await User.create([{
       name,
       email,
       phone,
       password: hashedPassword,
       role
-    });
+    }], { session });
 
-    // Create profile for workers
+    // Create profile for workers or sponsors
     if (role === 'worker') {
-      await Profile.create({ userId: user._id, skills: [] });
-    }
-    
-    // Create sponsor profile for sponsors
-    if (role === 'sponsor') {
+      await Profile.create([{ userId: user._id, skills: [] }], { session });
+    } else if (role === 'sponsor') {
       const Sponsor = (await import('../models/Sponsor.js')).default;
-      await Sponsor.create({ 
+      await Sponsor.create([{
         userId: user._id, 
         companyName: name,
         sponsoredEvents: [] 
-      });
+      }], { session });
     }
 
     // Generate tokens
@@ -59,7 +60,9 @@ export const register = async (req, res) => {
 
     // Save refresh token
     user.refreshToken = refreshToken;
-    await user.save();
+    await user.save({ session });
+
+    await session.commitTransaction();
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -73,7 +76,11 @@ export const register = async (req, res) => {
       refreshToken
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error registering user', error: error.message });
+    await session.abortTransaction();
+    const statusCode = error.message === 'User already exists' ? 400 : 500;
+    res.status(statusCode).json({ message: error.message || 'Error registering user' });
+  } finally {
+    session.endSession();
   }
 };
 
