@@ -3,6 +3,32 @@ import User from '../models/User.js';
 import cloudinary from '../config/cloudinary.js';
 import fs from 'fs';
 
+// Helper function to manage profile sub-documents
+const manageProfileSection = async (userId, section, action, data) => {
+  const profile = await Profile.findOne({ userId });
+  if (!profile) throw new Error('Profile not found');
+
+  switch (action) {
+    case 'add':
+      profile[section].push(data);
+      break;
+    case 'update':
+      const item = profile[section].id(data.id);
+      if (!item) throw new Error('Item not found');
+      Object.assign(item, data);
+      break;
+    case 'delete':
+      profile[section].pull(data.id);
+      break;
+    default:
+      throw new Error('Invalid action');
+  }
+
+  await profile.save();
+  return profile;
+};
+
+
 export const createOrUpdateProfile = async (req, res) => {
   try {
     let profile = await Profile.findOne({ userId: req.userId });
@@ -113,5 +139,115 @@ export const searchTalent = async (req, res) => {
     res.json({ profiles: filteredProfiles });
   } catch (error) {
     res.status(500).json({ message: 'Error searching talent', error: error.message });
+  }
+};
+
+// --- New functions for managing profile sections ---
+
+export const addWorkExperience = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'workExperience', 'add', req.body);
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateWorkExperience = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'workExperience', 'update', { id: req.params.id, ...req.body });
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteWorkExperience = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'workExperience', 'delete', { id: req.params.id });
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const addEducation = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'education', 'add', req.body);
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateEducation = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'education', 'update', { id: req.params.id, ...req.body });
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteEducation = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'education', 'delete', { id: req.params.id });
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const addPortfolioItem = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'portfolio', 'add', req.body);
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updatePortfolioItem = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'portfolio', 'update', { id: req.params.id, ...req.body });
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deletePortfolioItem = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'portfolio', 'delete', { id: req.params.id });
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const addCertification = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'certifications', 'add', req.body);
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateCertification = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'certifications', 'update', { id: req.params.id, ...req.body });
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteCertification = async (req, res) => {
+  try {
+    const profile = await manageProfileSection(req.userId, 'certifications', 'delete', { id: req.params.id });
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
