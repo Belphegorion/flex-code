@@ -1,6 +1,7 @@
 import Profile from '../models/Profile.js';
 import User from '../models/User.js';
 import cloudinary from '../config/cloudinary.js';
+import fs from 'fs';
 
 export const createOrUpdateProfile = async (req, res) => {
   try {
@@ -76,6 +77,10 @@ export const uploadVideo = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: 'Error uploading video', error: error.message });
+  } finally {
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
   }
 };
 
