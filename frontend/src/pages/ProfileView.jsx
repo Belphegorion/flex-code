@@ -2,8 +2,64 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Layout from '../components/common/Layout';
-import { FiStar, FiMapPin, FiBriefcase, FiAward } from 'react-icons/fi';
+import { FiStar, FiMapPin } from 'react-icons/fi';
 import api from '../services/api';
+
+// --- Placeholder components for the new sections ---
+const WorkExperienceSection = ({ experience }) => (
+  <div className="mb-8">
+    <h2 className="text-2xl font-semibold mb-4 border-b pb-2">Work Experience</h2>
+    {experience.map(item => (
+      <div key={item._id} className="mb-4">
+        <h3 className="text-xl font-semibold">{item.title}</h3>
+        <p className="text-md text-gray-600 dark:text-gray-400">{item.company}</p>
+        <p className="text-sm text-gray-500">{new Date(item.startDate).toLocaleDateString()} - {item.endDate ? new Date(item.endDate).toLocaleDateString() : 'Present'}</p>
+        <p className="mt-2">{item.description}</p>
+      </div>
+    ))}
+  </div>
+);
+
+const EducationSection = ({ education }) => (
+  <div className="mb-8">
+    <h2 className="text-2xl font-semibold mb-4 border-b pb-2">Education</h2>
+    {education.map(item => (
+      <div key={item._id} className="mb-4">
+        <h3 className="text-xl font-semibold">{item.school}</h3>
+        <p className="text-md text-gray-600 dark:text-gray-400">{item.degree}, {item.fieldOfStudy}</p>
+      </div>
+    ))}
+  </div>
+);
+
+const PortfolioSection = ({ portfolio }) => (
+  <div className="mb-8">
+    <h2 className="text-2xl font-semibold mb-4 border-b pb-2">Portfolio</h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {portfolio.map(item => (
+        <div key={item._id} className="card">
+          <img src={item.imageUrl} alt={item.title} className="w-full h-48 object-cover"/>
+          <div className="p-4">
+            <h3 className="font-semibold">{item.title}</h3>
+            <a href={item.projectUrl} target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">View Project</a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const CertificationsSection = ({ certifications }) => (
+  <div className="mb-8">
+    <h2 className="text-2xl font-semibold mb-4 border-b pb-2">Certifications</h2>
+    {certifications.map(item => (
+      <div key={item._id} className="mb-2">
+        <h3 className="text-lg font-semibold">{item.name}</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{item.issuingOrganization}</p>
+      </div>
+    ))}
+  </div>
+);
 
 const ProfileView = () => {
   const { id } = useParams();
@@ -53,14 +109,14 @@ const ProfileView = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card"
+          className="card p-8"
         >
-          <div className="flex items-start gap-6 mb-6">
+          <div className="flex items-start gap-6 mb-8">
             <div className="w-24 h-24 bg-primary-600 text-white rounded-full flex items-center justify-center text-3xl font-bold">
               {profile.userId?.name?.charAt(0) || 'U'}
             </div>
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">{profile.userId?.name || 'User'}</h1>
+              <h1 className="text-4xl font-bold mb-2">{profile.userId?.name || 'User'}</h1>
               <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
                 {profile.location?.city && (
                   <div className="flex items-center gap-1">
@@ -79,57 +135,17 @@ const ProfileView = () => {
           </div>
 
           {profile.bio && (
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-3">About</h2>
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold mb-2">About</h2>
               <p className="text-gray-700 dark:text-gray-300">{profile.bio}</p>
             </div>
           )}
 
-          {profile.skills?.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                <FiBriefcase />
-                Skills
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {profile.skills.map((skill, i) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1 bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 rounded-full text-sm"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          {profile.workExperience?.length > 0 && <WorkExperienceSection experience={profile.workExperience} />}
+          {profile.education?.length > 0 && <EducationSection education={profile.education} />}
+          {profile.portfolio?.length > 0 && <PortfolioSection portfolio={profile.portfolio} />}
+          {profile.certifications?.length > 0 && <CertificationsSection certifications={profile.certifications} />}
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t dark:border-gray-700">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-                {profile.userId?.completedJobsCount || 0}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Jobs Completed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-                {profile.userId?.ratingCount || 0}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Reviews</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-                {((profile.userId?.reliabilityScore || 1) * 100).toFixed(0)}%
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Reliability</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-                {profile.userId?.ratingAvg?.toFixed(1) || 'N/A'}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Rating</div>
-            </div>
-          </div>
         </motion.div>
       </div>
     </Layout>
