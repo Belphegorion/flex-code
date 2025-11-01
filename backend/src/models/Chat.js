@@ -48,6 +48,6 @@ const chatSchema = new mongoose.Schema({
 });
 
 // Index for finding chats
-chatSchema.index({ participants: 1 });
+chatSchema.index({ participants: 1, jobId: 1 }, { unique: true });
 
 export default mongoose.model('Chat', chatSchema);
