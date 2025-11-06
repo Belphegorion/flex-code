@@ -21,7 +21,7 @@ const Attendance = () => {
   const fetchJob = async () => {
     try {
       const res = await api.get(`/jobs/${jobId}`);
-      setJob(res.data.job || res.data);
+      setJob(res.job || res);
     } catch (error) {
       toast.error('Failed to load job');
     } finally {

@@ -16,7 +16,7 @@ const JobDiscover = () => {
   const fetchJobs = async () => {
     try {
       const res = await api.get('/jobs/discover');
-      setJobs(res.data.jobs || []);
+      setJobs(res.jobs || res || []);
     } catch (error) {
       console.error('Error fetching jobs:', error);
     } finally {

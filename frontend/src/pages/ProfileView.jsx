@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Layout from '../components/common/Layout';
-import { FiStar, FiMapPin } from 'react-icons/fi';
+import { FiStar, FiMapPin, FiEdit } from 'react-icons/fi';
+import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 
 // --- Placeholder components for the new sections ---
@@ -63,17 +64,23 @@ const CertificationsSection = ({ certifications }) => (
 
 const ProfileView = () => {
   const { id } = useParams();
+  const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const isOwnProfile = user?.id === id;
 
   useEffect(() => {
     fetchProfile();
   }, [id]);
 
   const fetchProfile = async () => {
+    if (!id || id === 'undefined') {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await api.get(`/profiles/${id}`);
-      setProfile(res.data.profile || res.data);
+      setProfile(res.profile || res);
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
@@ -112,11 +119,22 @@ const ProfileView = () => {
           className="card p-8"
         >
           <div className="flex items-start gap-6 mb-8">
-            <div className="w-24 h-24 bg-primary-600 text-white rounded-full flex items-center justify-center text-3xl font-bold">
-              {profile.userId?.name?.charAt(0) || 'U'}
+            <div className="w-24 h-24 bg-primary-600 text-white rounded-full flex items-center justify-center text-3xl font-bold overflow-hidden">
+              {profile.userId?.profilePhoto ? (
+                <img src={profile.userId.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                profile.userId?.name?.charAt(0) || 'U'
+              )}
             </div>
             <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-2">{profile.userId?.name || 'User'}</h1>
+              <div className="flex items-center justify-between mb-2">
+                <h1 className="text-4xl font-bold">{profile.userId?.name || 'User'}</h1>
+                {isOwnProfile && (
+                  <Link to="/profile/edit" className="btn-primary flex items-center gap-2">
+                    <FiEdit /> Edit Profile
+                  </Link>
+                )}
+              </div>
               <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
                 {profile.location?.city && (
                   <div className="flex items-center gap-1">

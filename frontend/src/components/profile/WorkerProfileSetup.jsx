@@ -46,8 +46,8 @@ export default function WorkerProfileSetup({ onComplete }) {
       toast.error('Please add at least one skill');
       return;
     }
-    if (!formData.location) {
-      toast.error('Please select your location');
+    if (!formData.location || !formData.location.address || typeof formData.location.lat !== 'number' || typeof formData.location.lng !== 'number') {
+      toast.error('Please select a valid location with address');
       return;
     }
 

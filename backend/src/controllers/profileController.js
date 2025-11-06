@@ -66,6 +66,10 @@ export const getMyProfile = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
+    if (!req.params.id || req.params.id === 'undefined') {
+      return res.status(400).json({ message: 'Valid profile ID is required' });
+    }
+
     const profile = await Profile.findOne({ userId: req.params.id })
       .populate('userId', 'name email ratingAvg totalJobs badges kycStatus');
 
@@ -249,5 +253,58 @@ export const deleteCertification = async (req, res) => {
     res.json(profile);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const uploadProfilePhoto = async (req, res) => {
+  try {
+    const { photoUrl } = req.body;
+
+    if (!photoUrl) {
+      return res.status(400).json({ message: 'Photo URL is required' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { profilePhoto: photoUrl },
+      { new: true }
+    ).select('-password -refreshToken');
+
+    res.json({ message: 'Profile photo updated', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating photo', error: error.message });
+  }
+};
+
+export const getMyFullProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('-password -refreshToken');
+    const profile = await Profile.findOne({ userId: req.userId });
+
+    res.json({ user, profile });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching profile', error: error.message });
+  }
+};
+
+export const updateMyProfile = async (req, res) => {
+  try {
+    const { name, phone, bio, skills, location, availability, hourlyRate, experience } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { name, phone },
+      { new: true }
+    ).select('-password -refreshToken');
+
+    const profile = await Profile.findOneAndUpdate(
+      { userId: req.userId },
+      { bio, skills, location, availability, hourlyRate, experience },
+      { new: true, upsert: true }
+    );
+
+    res.json({ message: 'Profile updated', user, profile });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating profile', error: error.message });
   }
 };

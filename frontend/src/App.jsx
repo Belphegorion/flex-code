@@ -19,6 +19,10 @@ import JobCreate from './pages/JobCreate';
 import JobDiscover from './pages/JobDiscover';
 import ProfileView from './pages/ProfileView';
 import Attendance from './pages/Attendance';
+import JobApplicants from './pages/JobApplicants';
+import GroupChat from './pages/GroupChat';
+import Groups from './pages/Groups';
+import ProfileEdit from './pages/ProfileEdit';
 import EventManagement from './pages/EventManagement';
 import EventFinancials from './pages/EventFinancials';
 import EventsHero from './pages/EventsHero';
@@ -84,6 +88,30 @@ function App() {
             <Route path="/jobs/:id" element={
               <ProtectedRoute allowedRoles={['organizer', 'worker']}>
                 <JobDetails />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/jobs/:jobId/applicants" element={
+              <ProtectedRoute allowedRoles={['organizer']}>
+                <JobApplicants />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/groups/:groupId" element={
+              <ProtectedRoute allowedRoles={['worker', 'organizer']}>
+                <GroupChat />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/groups" element={
+              <ProtectedRoute allowedRoles={['worker', 'organizer']}>
+                <Groups />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/profile/edit" element={
+              <ProtectedRoute allowedRoles={['worker', 'organizer', 'sponsor']}>
+                <ProfileEdit />
               </ProtectedRoute>
             } />
             

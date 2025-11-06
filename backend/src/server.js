@@ -22,8 +22,29 @@ import adminRoutes from './routes/admin.js';
 import chatRoutes from './routes/chat.js';
 import eventRoutes from './routes/events.js';
 import profileSetupRoutes from './routes/profileSetup.js';
+import notificationRoutes from './routes/notifications.js';
+import groupRoutes from './routes/groups.js';
 
 dotenv.config();
+
+// Validate critical environment variables
+if (!process.env.JWT_SECRET) {
+  console.error('CRITICAL: JWT_SECRET environment variable is not set!');
+  process.exit(1);
+}
+
+if (!process.env.JWT_REFRESH_SECRET) {
+  console.error('CRITICAL: JWT_REFRESH_SECRET environment variable is not set!');
+  process.exit(1);
+}
+
+console.log('Environment check:', {
+  NODE_ENV: process.env.NODE_ENV || 'development',
+  PORT: process.env.PORT || 4000,
+  MONGO_URI: process.env.MONGO_URI ? 'SET' : 'NOT SET',
+  JWT_SECRET: process.env.JWT_SECRET ? 'SET' : 'NOT SET',
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ? 'SET' : 'NOT SET'
+});
 
 const app = express();
 const httpServer = createServer(app);
@@ -42,7 +63,12 @@ startScheduledJobs();
 
 // CORS
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:3000',
+    'http://frontend:80',
+    'http://frontend'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -51,6 +77,15 @@ app.use(cors({
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`, {
+    headers: req.headers.authorization ? 'Bearer ***' : 'No Auth',
+    body: req.method === 'POST' ? 'Has Body' : 'No Body'
+  });
+  next();
+});
 
 // Logging
 if (process.env.NODE_ENV === 'production') {
@@ -66,7 +101,7 @@ app.use(compression());
 app.use(customSecurity);
 if (process.env.NODE_ENV === 'production') {
   app.use(securityHeaders);
-  app.use(apiLimiter);
+  app.use('/api/', apiLimiter);
 }
 
 // Socket.io setup
@@ -83,6 +118,14 @@ io.on('connection', (socket) => {
 
   socket.on('join-event', (eventId) => {
     socket.join(`event_${eventId}`);
+  });
+
+  socket.on('join-user-room', (userId) => {
+    socket.join(`user_${userId}`);
+  });
+
+  socket.on('join-group', (groupId) => {
+    socket.join(`group_${groupId}`);
   });
 
   socket.on('video-signal', (data) => {
@@ -113,6 +156,16 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Debug endpoint
+app.get('/api/debug', (req, res) => {
+  res.json({
+    headers: req.headers,
+    query: req.query,
+    params: req.params,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
@@ -124,6 +177,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/profile-setup', profileSetupRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/groups', groupRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -133,7 +188,7 @@ app.use((req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

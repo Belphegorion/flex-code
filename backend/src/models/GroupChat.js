@@ -1,0 +1,63 @@
+import mongoose from 'mongoose';
+
+const groupMessageSchema = new mongoose.Schema({
+  senderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  text: {
+    type: String,
+    required: true
+  },
+  type: {
+    type: String,
+    enum: ['text', 'image', 'file', 'system'],
+    default: 'text'
+  },
+  fileUrl: String,
+  read: Boolean,
+  readBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
+}, {
+  timestamps: true
+});
+
+const groupChatSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  jobId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Job',
+    required: true
+  },
+  participants: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }],
+  messages: [groupMessageSchema],
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  avatar: String,
+  lastMessage: String,
+  lastMessageAt: Date,
+  isActive: {
+    type: Boolean,
+    default: true
+  }
+}, {
+  timestamps: true
+});
+
+groupChatSchema.index({ jobId: 1 });
+groupChatSchema.index({ participants: 1 });
+
+export default mongoose.model('GroupChat', groupChatSchema);

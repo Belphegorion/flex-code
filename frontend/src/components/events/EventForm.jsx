@@ -19,8 +19,11 @@ export default function EventForm({ onSuccess }) {
     setLoading(true);
 
     try {
-      const res = await axios.post('/api/events', formData);
-      const eventId = res.data.event._id;
+      const token = localStorage.getItem('accessToken');
+      const res = await axios.post('/api/events', formData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const eventId = res.data.event?._id || res.data._id;
 
       if (ticketFile) {
         const ticketFormData = new FormData();

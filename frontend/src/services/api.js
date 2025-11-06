@@ -2,7 +2,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 
 const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api`,
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -33,7 +33,7 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken');
         if (!refreshToken) throw new Error('No refresh token');
         
-        const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/auth/refresh`, { refreshToken });
+        const response = await axios.post(`${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`, { refreshToken });
         const { accessToken } = response.data;
 
         localStorage.setItem('accessToken', accessToken);

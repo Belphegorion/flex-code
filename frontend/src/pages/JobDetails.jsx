@@ -21,9 +21,15 @@ const JobDetails = () => {
   }, [id]);
 
   const fetchJob = async () => {
+    if (!id || id === 'undefined') {
+      toast.error('Invalid job ID');
+      navigate(-1);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await api.get(`/jobs/${id}`);
-      setJob(res.data.job || res.data);
+      setJob(res.job || res);
     } catch (error) {
       toast.error('Failed to load job details');
       navigate(-1);
@@ -172,7 +178,12 @@ const JobDetails = () => {
             <div className="border-t dark:border-gray-700 pt-6">
               <h2 className="text-xl font-semibold mb-3">Manage Job</h2>
               <div className="flex gap-4">
-                <button className="btn-secondary">View Applicants</button>
+                <button 
+                  onClick={() => navigate(`/jobs/${id}/applicants`)}
+                  className="btn-primary"
+                >
+                  View Applicants
+                </button>
                 <button className="btn-secondary">Edit Job</button>
               </div>
             </div>

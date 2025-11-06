@@ -17,7 +17,10 @@ import {
   deletePortfolioItem,
   addCertification,
   updateCertification,
-  deleteCertification
+  deleteCertification,
+  uploadProfilePhoto,
+  getMyFullProfile,
+  updateMyProfile
 } from '../controllers/profileController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
@@ -26,6 +29,9 @@ const upload = multer({ dest: 'uploads/' });
 
 // --- Main Profile Routes ---
 router.get('/my-profile', authenticate, getMyProfile);
+router.get('/me', authenticate, getMyFullProfile);
+router.put('/me', authenticate, updateMyProfile);
+router.post('/photo', authenticate, uploadProfilePhoto);
 router.post('/', authenticate, authorize('worker'), createOrUpdateProfile);
 router.get('/search', authenticate, authorize('organizer'), searchTalent);
 router.post('/video', authenticate, authorize('worker'), upload.single('video'), uploadVideo);

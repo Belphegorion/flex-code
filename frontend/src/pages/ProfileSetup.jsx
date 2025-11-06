@@ -11,7 +11,7 @@ import SponsorProfileSetup from '../components/profile/SponsorProfileSetup';
 import { FiCheckCircle } from 'react-icons/fi';
 
 export default function ProfileSetup() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profileStatus, setProfileStatus] = useState(null);
@@ -41,8 +41,9 @@ export default function ProfileSetup() {
     return '/';
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     toast.success('Profile completed successfully!');
+    updateUser({ profileCompleted: true });
     navigate(getDashboardRoute());
   };
 

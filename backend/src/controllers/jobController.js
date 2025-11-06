@@ -27,6 +27,10 @@ export const createJob = async (req, res) => {
 
 export const getJobs = async (req, res) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ message: 'User ID not found' });
+    }
+
     const { status, skills, city } = req.query;
     const filter = { organizerId: req.userId };
 
@@ -40,13 +44,24 @@ export const getJobs = async (req, res) => {
 
     res.json({ jobs });
   } catch (error) {
+    console.error('Jobs fetch error:', { userId: req.userId, error: error.message, timestamp: new Date().toISOString() });
     res.status(500).json({ message: 'Error fetching jobs', error: error.message });
   }
 };
 
 export const getJobById = async (req, res) => {
   try {
-    const job = await Job.findById(req.params.id)
+    const jobId = req.params.id;
+    
+    if (!jobId || jobId === 'undefined') {
+      return res.status(400).json({ message: 'Valid job ID is required' });
+    }
+
+    if (!jobId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'Invalid job ID format' });
+    }
+
+    const job = await Job.findById(jobId)
       .populate('organizerId', 'name email phone')
       .populate('hiredPros', 'name email ratingAvg')
       .populate('applicants.proId', 'name email ratingAvg badges');
@@ -57,6 +72,10 @@ export const getJobById = async (req, res) => {
 
     res.json({ job });
   } catch (error) {
+    console.error('Job fetch error:', { jobId: req.params.id, error: error.message, timestamp: new Date().toISOString() });
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid job ID format' });
+    }
     res.status(500).json({ message: 'Error fetching job', error: error.message });
   }
 };

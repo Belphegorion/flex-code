@@ -27,6 +27,18 @@ export const completeWorkerProfile = async (req, res) => {
   try {
     const { skills, bio, location, availability, hourlyRate, experience, portfolioLinks } = req.body;
 
+    if (!skills || !Array.isArray(skills) || skills.length === 0) {
+      return res.status(400).json({ message: 'Skills array is required and cannot be empty' });
+    }
+
+    if (!location || !location.address || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+      return res.status(400).json({ message: 'Valid location with address, lat, and lng is required' });
+    }
+
+    if (!availability || !['full-time', 'part-time', 'weekends', 'flexible'].includes(availability)) {
+      return res.status(400).json({ message: 'Valid availability is required' });
+    }
+
     const profile = await Profile.findOneAndUpdate(
       { userId: req.userId },
       {

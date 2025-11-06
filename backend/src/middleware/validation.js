@@ -10,3 +10,12 @@ export const validate = (req, res, next) => {
   }
   next();
 };
+
+// Express v5 compatible query parser
+export const parseQuery = (req, res, next) => {
+  // Create a mutable copy of query if needed
+  if (req.query && typeof req.query === 'object') {
+    req.parsedQuery = { ...req.query };
+  }
+  next();
+};

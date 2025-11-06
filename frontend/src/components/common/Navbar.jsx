@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { FiLogOut, FiUser, FiMoon, FiSun, FiMenu, FiX } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -46,6 +47,7 @@ const Navbar = () => {
             >
               {isDark ? <FiSun className="text-yellow-400" size={20} /> : <FiMoon className="text-gray-600" size={20} />}
             </button>
+            {user && <NotificationBell />}
             {user ? (
               <>
                 <Link to={getDashboardLink()} className="nav-link">

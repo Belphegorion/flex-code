@@ -24,8 +24,8 @@ const WorkerDashboard = () => {
         jobService.discoverJobs({ maxDistance: 50 }),
         api.get('/profiles/my-profile')
       ]);
-      setJobs(jobsData.jobs || []);
-      setProfile(profileData.profile);
+      setJobs(jobsData.jobs || jobsData || []);
+      setProfile(profileData.profile || profileData);
     } catch (error) {
       console.error('Error fetching data:', error);
       setJobs([]);

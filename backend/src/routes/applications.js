@@ -4,6 +4,8 @@ import {
   applyToJob,
   getMyApplications,
   acceptApplication,
+  declineApplication,
+  getJobApplicants,
   checkIn
 } from '../controllers/applicationController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
@@ -13,6 +15,7 @@ const router = express.Router();
 
 // Specific routes first
 router.get('/my-applications', authenticate, authorize('worker'), getMyApplications);
+router.get('/job/:jobId', authenticate, authorize('organizer'), getJobApplicants);
 
 router.post('/check-in', authenticate, authorize('worker'), [
   body('jobId').notEmpty().withMessage('Job ID required'),
@@ -29,5 +32,6 @@ router.post('/:id/apply', authenticate, authorize('worker'), [
 ], applyToJob);
 
 router.post('/:id/accept', authenticate, authorize('organizer'), acceptApplication);
+router.post('/:id/decline', authenticate, authorize('organizer'), declineApplication);
 
 export default router;

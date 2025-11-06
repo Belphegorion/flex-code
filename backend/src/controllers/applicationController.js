@@ -2,6 +2,7 @@ import Application from '../models/Application.js';
 import Job from '../models/Job.js';
 import User from '../models/User.js';
 import { scheduleReliabilityUpdate, scheduleJobReminder } from '../utils/jobQueue.js';
+import { createNotification } from './notificationController.js';
 
 export const applyToJob = async (req, res) => {
   try {
@@ -43,6 +44,24 @@ export const applyToJob = async (req, res) => {
     });
     await job.save();
 
+    // Create notification for organizer
+    const worker = await User.findById(req.userId).select('name');
+    await createNotification(job.organizerId, {
+      type: 'application',
+      title: 'New Job Application',
+      message: `${worker.name} applied for ${job.title}`,
+      relatedId: application._id,
+      relatedModel: 'Application',
+      actionUrl: `/jobs/${job._id}`
+    });
+
+    // Emit socket event
+    const io = req.app.get('io');
+    io.to(`user_${job.organizerId}`).emit('notification', {
+      type: 'application',
+      message: `New application for ${job.title}`
+    });
+
     res.status(201).json({
       message: 'Application submitted successfully',
       application
@@ -81,6 +100,23 @@ export const acceptApplication = async (req, res) => {
     application.status = 'accepted';
     await application.save();
 
+    // Create notification for worker
+    await createNotification(application.proId, {
+      type: 'acceptance',
+      title: 'Application Accepted!',
+      message: `Your application for ${application.jobId.title} has been accepted`,
+      relatedId: application.jobId._id,
+      relatedModel: 'Job',
+      actionUrl: `/jobs/${application.jobId._id}`
+    });
+
+    // Emit socket event
+    const io = req.app.get('io');
+    io.to(`user_${application.proId}`).emit('notification', {
+      type: 'acceptance',
+      message: `Application accepted for ${application.jobId.title}`
+    });
+
     // Schedule reminder 24h before job
     const job = application.jobId;
     const timeUntilJob = new Date(job.dateStart) - Date.now();
@@ -91,6 +127,60 @@ export const acceptApplication = async (req, res) => {
     res.json({ message: 'Application accepted', application });
   } catch (error) {
     res.status(500).json({ message: 'Error accepting application', error: error.message });
+  }
+};
+
+export const getJobApplicants = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    if (job.organizerId.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    const applications = await Application.find({ jobId })
+      .populate('proId', 'name email phone profilePhoto ratingAvg badges kycStatus')
+      .sort({ createdAt: -1 });
+
+    res.json({ applications });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching applicants', error: error.message });
+  }
+};
+
+export const declineApplication = async (req, res) => {
+  try {
+    const application = await Application.findById(req.params.id)
+      .populate('jobId');
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    if (application.jobId.organizerId.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    application.status = 'declined';
+    await application.save();
+
+    await createNotification(application.proId, {
+      type: 'rejection',
+      title: 'Application Update',
+      message: `Your application for ${application.jobId.title} was not selected`,
+      relatedId: application.jobId._id,
+      relatedModel: 'Job',
+      actionUrl: `/jobs/discover`
+    });
+
+    res.json({ message: 'Application declined', application });
+  } catch (error) {
+    res.status(500).json({ message: 'Error declining application', error: error.message });
   }
 };
 

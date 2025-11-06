@@ -29,10 +29,10 @@ export default function LocationPicker({ value, location, onChange }) {
   const { getCurrentPosition, reverseGeocode, loading: detecting } = useGeolocation();
 
   useEffect(() => {
-    if (position && onChange) {
+    if (position && address && onChange) {
       onChange({ address, lat: position.lat, lng: position.lng });
     }
-  }, [position]);
+  }, [position, address]);
 
   const handleAutoDetect = async () => {
     try {
