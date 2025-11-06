@@ -11,7 +11,7 @@ export const getEventJobs = async (req, res) => {
     }
 
     const jobs = await Job.find({ eventId })
-      .populate('hiredPros', 'name email')
+      .populate('hiredPros', 'name email profilePhoto')
       .sort({ createdAt: 1 });
 
     const totalPositions = jobs.reduce((sum, job) => sum + job.totalPositions, 0);

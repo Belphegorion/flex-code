@@ -1,6 +1,8 @@
 import Application from '../models/Application.js';
 import Job from '../models/Job.js';
 import User from '../models/User.js';
+import GroupChat from '../models/GroupChat.js';
+import Event from '../models/Event.js';
 import { scheduleReliabilityUpdate, scheduleJobReminder } from '../utils/jobQueue.js';
 import { createNotification } from './notificationController.js';
 
@@ -103,25 +105,70 @@ export const acceptApplication = async (req, res) => {
     application.status = 'accepted';
     await application.save();
 
+    // Update job applicant status
+    const job = application.jobId;
+    const applicant = job.applicants.find(a => a.proId.toString() === application.proId.toString());
+    if (applicant) {
+      applicant.status = 'accepted';
+    }
+    job.positionsFilled = (job.positionsFilled || 0) + 1;
+    await job.save();
+
+    // Auto-create or add to event group chat
+    if (job.eventId) {
+      const event = await Event.findById(job.eventId);
+      
+      // Check if event group already exists
+      let group = await GroupChat.findOne({ eventId: job.eventId });
+      
+      if (!group) {
+        // Create new event group
+        group = await GroupChat.create({
+          name: event.title,
+          eventId: job.eventId,
+          participants: [req.userId, application.proId],
+          createdBy: req.userId,
+          messages: [{
+            senderId: req.userId,
+            text: `Welcome to ${event.title}!`,
+            type: 'system'
+          }]
+        });
+      } else {
+        // Add worker to existing group if not already in it
+        if (!group.participants.includes(application.proId)) {
+          group.participants.push(application.proId);
+          
+          const worker = await User.findById(application.proId).select('name');
+          group.messages.push({
+            senderId: req.userId,
+            text: `${worker.name} joined ${event.title}`,
+            type: 'system'
+          });
+          
+          await group.save();
+        }
+      }
+    }
+
     // Create notification for worker
     await createNotification(application.proId, {
       type: 'acceptance',
       title: 'Application Accepted!',
-      message: `Your application for ${application.jobId.title} has been accepted`,
-      relatedId: application.jobId._id,
+      message: `Your application for ${job.title} has been accepted`,
+      relatedId: job._id,
       relatedModel: 'Job',
-      actionUrl: `/jobs/${application.jobId._id}`
+      actionUrl: `/jobs/${job._id}`
     });
 
     // Emit socket event
     const io = req.app.get('io');
     io.to(`user_${application.proId}`).emit('notification', {
       type: 'acceptance',
-      message: `Application accepted for ${application.jobId.title}`
+      message: `Application accepted for ${job.title}`
     });
 
     // Schedule reminder 24h before job
-    const job = application.jobId;
     const timeUntilJob = new Date(job.dateStart) - Date.now();
     if (timeUntilJob > 24 * 60 * 60 * 1000) {
       scheduleJobReminder(job._id, 'pre-job', timeUntilJob - 24 * 60 * 60 * 1000);
@@ -137,7 +184,7 @@ export const getJobApplicants = async (req, res) => {
   try {
     const { jobId } = req.params;
     
-    const job = await Job.findById(jobId);
+    const job = await Job.findById(jobId).populate('eventId', 'title');
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
@@ -150,7 +197,7 @@ export const getJobApplicants = async (req, res) => {
       .populate('proId', 'name email phone profilePhoto ratingAvg badges kycStatus')
       .sort({ createdAt: -1 });
 
-    res.json({ applications });
+    res.json({ applications, job });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching applicants', error: error.message });
   }

@@ -77,7 +77,19 @@ const eventSchema = new mongoose.Schema({
   }],
 
   revenue: { type: Number, default: 0 },
-  estimatedProfit: { type: Number, default: 0 }
+  estimatedProfit: { type: Number, default: 0 },
+  sponsors: [{
+    sponsorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    amount: Number,
+    sponsoredAt: Date,
+    chatId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'GroupChat'
+    }
+  }]
 }, {
   timestamps: true
 });

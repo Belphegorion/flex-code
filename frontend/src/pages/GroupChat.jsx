@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiSend, FiUsers, FiArrowLeft, FiUserPlus, FiX, FiSettings, FiUserMinus, FiUserCheck } from 'react-icons/fi';
+import { FiSend, FiUsers, FiArrowLeft, FiUserPlus, FiX, FiSettings, FiUserMinus, FiUserCheck, FiQrCode } from 'react-icons/fi';
 import Layout from '../components/common/Layout';
+import GroupScheduler from '../components/groups/GroupScheduler';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import socketService from '../services/socket';
@@ -15,6 +16,7 @@ export default function GroupChat() {
   const [showMembers, setShowMembers] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
+  const [showScheduler, setShowScheduler] = useState(false);
   const [loading, setLoading] = useState(true);
   const [workers, setWorkers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,11 +71,22 @@ export default function GroupChat() {
 
   const fetchWorkers = async () => {
     try {
-      const res = await api.get(`/applications/job/${group.jobId._id}`);
-      const acceptedWorkers = (res.applications || [])
-        .filter(app => app.status === 'accepted')
-        .map(app => app.proId)
-        .filter(worker => !group.participants.some(p => p._id === worker._id));
+      // Get all jobs for this event
+      const res = await api.get(`/events/${group.eventId._id}/jobs`);
+      const jobs = res.jobs || [];
+      
+      // Get all hired workers from all jobs
+      const acceptedWorkers = [];
+      for (const job of jobs) {
+        if (job.hiredPros) {
+          job.hiredPros.forEach(worker => {
+            if (!acceptedWorkers.some(w => w._id === worker._id) && 
+                !group.participants.some(p => p._id === worker._id)) {
+              acceptedWorkers.push(worker);
+            }
+          });
+        }
+      }
       setWorkers(acceptedWorkers);
     } catch (error) {
       console.error('Error fetching workers:', error);
@@ -200,12 +213,19 @@ export default function GroupChat() {
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold truncate">{group.name}</h2>
-              <p className="text-xs opacity-90 truncate">{group.participants?.length} members • {group.jobId?.title}</p>
+              <p className="text-xs opacity-90 truncate">{group.participants?.length} members • {group.eventId?.title}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {isOrganizer && (
               <>
+                <button
+                  onClick={() => setShowScheduler(true)}
+                  className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
+                  title="Schedule Session"
+                >
+                  <FiQrCode size={20} />
+                </button>
                 <button
                   onClick={openAddMemberModal}
                   className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
@@ -481,6 +501,17 @@ export default function GroupChat() {
               </div>
             </div>
           </div>
+        )}
+        
+        {showScheduler && (
+          <GroupScheduler
+            groupId={groupId}
+            onClose={() => setShowScheduler(false)}
+            onScheduled={() => {
+              setShowScheduler(false);
+              fetchGroup();
+            }}
+          />
         )}
       </div>
     </Layout>

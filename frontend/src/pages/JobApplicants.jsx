@@ -19,12 +19,9 @@ export default function JobApplicants() {
 
   const fetchData = async () => {
     try {
-      const [applicantsRes, jobRes] = await Promise.all([
-        api.get(`/applications/job/${jobId}`),
-        api.get(`/jobs/${jobId}`)
-      ]);
+      const applicantsRes = await api.get(`/applications/job/${jobId}`);
       setApplications(applicantsRes.applications || []);
-      setJob(jobRes.job || jobRes);
+      setJob(applicantsRes.job);
     } catch (error) {
       toast.error('Failed to load applicants');
       navigate(-1);
@@ -53,30 +50,7 @@ export default function JobApplicants() {
     }
   };
 
-  const startChat = async (workerId, workerName) => {
-    if (!job?.eventId) {
-      toast.error('Event information not found');
-      return;
-    }
 
-    const groupName = prompt(`Enter group name for ${workerName}:`, `${job?.eventId?.title || 'Event'} - Team Chat`);
-    
-    if (!groupName || !groupName.trim()) {
-      toast.error('Group name is required');
-      return;
-    }
-
-    try {
-      const res = await api.post('/groups', {
-        name: groupName.trim(),
-        eventId: typeof job.eventId === 'object' ? job.eventId._id : job.eventId,
-        participants: [workerId]
-      });
-      navigate(`/groups/${res.group._id}`);
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to start chat');
-    }
-  };
 
   if (loading) {
     return (
@@ -207,12 +181,14 @@ export default function JobApplicants() {
                       <p className="text-sm text-gray-600 dark:text-gray-400">{app.proId?.email}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => startChat(app.proId._id, app.proId?.name)}
-                    className="btn-primary w-full flex items-center justify-center gap-2"
-                  >
-                    <FiMessageCircle /> Start Chat
-                  </button>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => navigate('/groups')}
+                      className="btn-primary w-full flex items-center justify-center gap-2"
+                    >
+                      <FiMessageCircle /> Event Group Chat
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

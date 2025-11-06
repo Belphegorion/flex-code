@@ -1,4 +1,6 @@
 import Job from '../models/Job.js';
+import Event from '../models/Event.js';
+import Profile from '../models/Profile.js';
 import { generateQRCode } from '../utils/qrGenerator.js';
 import { calculateMatchScores } from '../utils/matchingAlgorithm.js';
 
@@ -10,7 +12,6 @@ export const createJob = async (req, res) => {
       return res.status(400).json({ message: 'Event ID is required' });
     }
 
-    const Event = (await import('../models/Event.js')).default;
     const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
     
     if (!event) {
@@ -126,7 +127,6 @@ export const discoverJobs = async (req, res) => {
 
     // Apply location-based filtering if user has profile with location
     if (req.user.role === 'worker') {
-      const Profile = (await import('../models/Profile.js')).default;
       const profile = await Profile.findOne({ userId: req.userId });
       
       if (profile?.location?.lat && maxDistance) {

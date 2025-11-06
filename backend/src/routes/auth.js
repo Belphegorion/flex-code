@@ -7,7 +7,10 @@ import { authLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
-router.post('/register', authLimiter, [
+// Apply rate limiter only in production
+const rateLimiterMiddleware = process.env.NODE_ENV === 'production' ? [authLimiter] : [];
+
+router.post('/register', ...rateLimiterMiddleware, [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
   body('phone').notEmpty().withMessage('Phone is required'),
@@ -16,7 +19,7 @@ router.post('/register', authLimiter, [
   validate
 ], register);
 
-router.post('/login', authLimiter, [
+router.post('/login', ...rateLimiterMiddleware, [
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').notEmpty().withMessage('Password is required'),
   validate

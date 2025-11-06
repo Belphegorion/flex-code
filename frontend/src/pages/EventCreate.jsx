@@ -141,15 +141,23 @@ export default function EventCreate() {
       const eventId = res.event._id;
 
       // Create all jobs for the event
-      for (const job of jobs) {
-        await api.post(`/events/${eventId}/jobs`, {
-          ...job,
-          roles: job.requiredSkills
-        });
+      if (jobs.length > 0) {
+        for (const job of jobs) {
+          try {
+            await api.post(`/events/${eventId}/jobs`, {
+              ...job,
+              roles: job.requiredSkills,
+              requiredSkills: job.requiredSkills
+            });
+          } catch (jobError) {
+            console.error('Failed to create job:', job.title, jobError);
+            // Continue with other jobs even if one fails
+          }
+        }
       }
 
       toast.success('Event and jobs created successfully!');
-      navigate(`/events/${eventId}`);
+      navigate('/organizer');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to create event');
     } finally {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiCalendar, FiMapPin, FiUsers, FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import Layout from '../components/common/Layout';
 import api from '../services/api';
 import { toast } from 'react-toastify';
 
@@ -59,7 +60,8 @@ export default function EventDetails() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <Layout>
+      <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Event Header */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
@@ -237,5 +239,6 @@ export default function EventDetails() {
         )}
       </div>
     </div>
+    </Layout>
   );
 }

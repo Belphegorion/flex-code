@@ -31,6 +31,7 @@ import CostEstimator from './pages/CostEstimator';
 import ProfileSetup from './pages/ProfileSetup';
 import EventDetails from './pages/EventDetails';
 import EventJobCreate from './pages/EventJobCreate';
+import SponsorEvents from './pages/SponsorEvents';
 
 function App() {
   return (
@@ -169,6 +170,18 @@ function App() {
             <Route path="/cost-estimator" element={
               <ProtectedRoute allowedRoles={['organizer']}>
                 <CostEstimator />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/sponsor/events" element={
+              <ProtectedRoute allowedRoles={['sponsor']}>
+                <SponsorEvents />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/sponsor/events/:eventId" element={
+              <ProtectedRoute allowedRoles={['sponsor']}>
+                <SponsorEvents />
               </ProtectedRoute>
             } />
             

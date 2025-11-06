@@ -8,7 +8,10 @@ import {
   addMembers,
   removeMember,
   leaveGroup,
-  transferOwnership
+  transferOwnership,
+  scheduleGroupSession,
+  joinGroupByQR,
+  getGroupQR
 } from '../controllers/groupChatController.js';
 import { authenticate } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
@@ -17,7 +20,7 @@ const router = express.Router();
 
 router.post('/', authenticate, [
   body('name').trim().notEmpty().withMessage('Group name is required'),
-  body('jobId').notEmpty().withMessage('Job ID is required'),
+  body('eventId').notEmpty().withMessage('Event ID is required'),
   body('participants').isArray().withMessage('Participants must be an array'),
   validate
 ], createGroup);
@@ -41,5 +44,18 @@ router.put('/:id/transfer', authenticate, [
   body('newOwnerId').notEmpty().withMessage('New owner ID is required'),
   validate
 ], transferOwnership);
+
+router.post('/:id/schedule', authenticate, [
+  body('sessionDate').notEmpty().withMessage('Session date is required'),
+  body('sessionTime').notEmpty().withMessage('Session time is required'),
+  validate
+], scheduleGroupSession);
+
+router.post('/join-qr', authenticate, [
+  body('qrData').notEmpty().withMessage('QR data is required'),
+  validate
+], joinGroupByQR);
+
+router.get('/:id/qr', authenticate, getGroupQR);
 
 export default router;

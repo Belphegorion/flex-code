@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiUsers, FiMessageCircle, FiSearch } from 'react-icons/fi';
+import { FiUsers, FiMessageCircle, FiSearch, FiQrCode } from 'react-icons/fi';
 import Layout from '../components/common/Layout';
+import QRScanner from '../components/groups/QRScanner';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -11,6 +12,7 @@ export default function Groups() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   useEffect(() => {
     fetchGroups();
@@ -27,6 +29,10 @@ export default function Groups() {
     }
   };
 
+  const handleQRSuccess = (group) => {
+    fetchGroups();
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -39,7 +45,7 @@ export default function Groups() {
 
   const filteredGroups = groups.filter(group => 
     group.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    group.jobId?.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    group.eventId?.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatTime = (date) => {
@@ -62,7 +68,21 @@ export default function Groups() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg h-full flex flex-col">
           {/* Header */}
           <div className="bg-primary-600 dark:bg-primary-700 text-white p-4 rounded-t-lg">
-            <h1 className="text-2xl font-bold mb-3">Messages</h1>
+            <div className="flex justify-between items-center mb-3">
+              <h1 className="text-2xl font-bold">Messages</h1>
+              {user?.role === 'worker' && (
+                <button
+                  onClick={() => setShowQRScanner(true)}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                  title="Join Group via QR"
+                >
+                  <FiQrCode size={20} />
+                </button>
+              )}
+              {user?.role === 'sponsor' && (
+                <span className="text-sm opacity-75">Sponsorship Chats</span>
+              )}
+            </div>
             <div className="relative">
               <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300" size={18} />
               <input
@@ -123,7 +143,7 @@ export default function Groups() {
                           )}
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">
-                          {group.jobId?.title}
+                          {group.eventId?.title}
                         </p>
                         {group.lastMessage ? (
                           <p className="text-sm text-gray-600 dark:text-gray-300 truncate flex items-center gap-1">
@@ -149,6 +169,13 @@ export default function Groups() {
           </div>
         </div>
       </div>
+      
+      {showQRScanner && (
+        <QRScanner
+          onClose={() => setShowQRScanner(false)}
+          onSuccess={handleQRSuccess}
+        />
+      )}
     </Layout>
   );
 }

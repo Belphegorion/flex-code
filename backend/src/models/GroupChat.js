@@ -52,7 +52,19 @@ const groupChatSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  }
+  },
+  qrCode: String,
+  qrCodeExpiry: Date,
+  sessionScheduled: {
+    type: Boolean,
+    default: false
+  },
+  sessionDate: Date,
+  sessionTime: String,
+  allowedWorkers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
 }, {
   timestamps: true
 });

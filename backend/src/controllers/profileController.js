@@ -71,10 +71,26 @@ export const getProfile = async (req, res) => {
     }
 
     const profile = await Profile.findOne({ userId: req.params.id })
-      .populate('userId', 'name email ratingAvg totalJobs badges kycStatus');
+      .populate('userId', 'name email ratingAvg totalJobs badges kycStatus profilePhoto');
 
     if (!profile) {
-      return res.status(404).json({ message: 'Profile not found' });
+      // If no Profile document exists, return basic User info
+      const user = await User.findById(req.params.id).select('name email ratingAvg totalJobs badges kycStatus profilePhoto');
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      return res.json({ 
+        profile: {
+          userId: user,
+          skills: [],
+          bio: '',
+          workExperience: [],
+          education: [],
+          portfolio: [],
+          certifications: []
+        }
+      });
     }
 
     res.json({ profile });

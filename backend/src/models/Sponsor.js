@@ -23,7 +23,7 @@ const sponsorSchema = new mongoose.Schema({
   sponsoredEvents: [{
     eventId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Job'
+      ref: 'Event'
     },
     amount: Number,
     sponsoredAt: Date

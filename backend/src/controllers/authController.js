@@ -70,7 +70,8 @@ export const register = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        profileCompleted: user.profileCompleted || false
+        profileCompleted: user.profileCompleted || false,
+        profilePhoto: user.profilePhoto
       },
       accessToken,
       refreshToken
@@ -164,7 +165,8 @@ export const login = async (req, res) => {
         kycStatus: user.kycStatus,
         badges: user.badges,
         ratingAvg: user.ratingAvg,
-        profileCompleted: user.profileCompleted
+        profileCompleted: user.profileCompleted,
+        profilePhoto: user.profilePhoto
       },
       accessToken,
       refreshToken
@@ -225,7 +227,19 @@ export const getProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({ user });
+    res.json({ 
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        kycStatus: user.kycStatus,
+        badges: user.badges,
+        ratingAvg: user.ratingAvg,
+        profileCompleted: user.profileCompleted,
+        profilePhoto: user.profilePhoto
+      }
+    });
   } catch (error) {
     console.error('Profile fetch error:', { userId: req.userId, error: error.message });
     res.status(500).json({ message: 'Error fetching profile', error: error.message });

@@ -24,6 +24,7 @@ import eventRoutes from './routes/events.js';
 import profileSetupRoutes from './routes/profileSetup.js';
 import notificationRoutes from './routes/notifications.js';
 import groupRoutes from './routes/groups.js';
+import sponsorRoutes from './routes/sponsors.js';
 
 dotenv.config();
 
@@ -36,6 +37,10 @@ if (!process.env.JWT_SECRET) {
 if (!process.env.JWT_REFRESH_SECRET) {
   console.error('CRITICAL: JWT_REFRESH_SECRET environment variable is not set!');
   process.exit(1);
+}
+
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  console.warn('WARNING: Cloudinary environment variables not set. Image uploads will fail.');
 }
 
 console.log('Environment check:', {
@@ -102,6 +107,8 @@ app.use(customSecurity);
 if (process.env.NODE_ENV === 'production') {
   app.use(securityHeaders);
   app.use('/api/', apiLimiter);
+} else {
+  console.log('Development mode: Rate limiting disabled');
 }
 
 // Socket.io setup
@@ -179,6 +186,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/profile-setup', profileSetupRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/sponsors', sponsorRoutes);
 
 // 404 handler
 app.use((req, res) => {
