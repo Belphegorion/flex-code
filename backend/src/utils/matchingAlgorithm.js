@@ -57,6 +57,29 @@ export const calculateMatchScores = async (jobs, userId) => {
   }
 };
 
+export const updateReliabilityScore = async (userId) => {
+  try {
+    const profile = await Profile.findOne({ userId });
+    if (!profile) return;
+
+    const user = await Profile.findOne({ userId }).populate('userId');
+    const completedJobs = user?.userId?.completedJobsCount || 0;
+    const noShows = user?.userId?.noShowCount || 0;
+    const totalJobs = completedJobs + noShows;
+
+    if (totalJobs === 0) {
+      profile.reliabilityScore = 100;
+    } else {
+      const reliabilityScore = Math.max(0, Math.round((completedJobs / totalJobs) * 100));
+      profile.reliabilityScore = reliabilityScore;
+    }
+
+    await profile.save();
+  } catch (error) {
+    console.error('Error updating reliability score:', error);
+  }
+};
+
 const calculateDistance = (lat1, lng1, lat2, lng2) => {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
