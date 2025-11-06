@@ -1,11 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-
-dotenv.config();
 
 const app = express();
 
@@ -21,11 +18,16 @@ let isConnected = false;
 const connectDB = async () => {
   if (isConnected) return;
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+    if (!mongoUri) {
+      throw new Error('MongoDB URI not found in environment variables');
+    }
+    await mongoose.connect(mongoUri);
     isConnected = true;
     console.log('MongoDB connected');
   } catch (error) {
     console.error('MongoDB connection error:', error);
+    throw error;
   }
 };
 
@@ -59,7 +61,8 @@ app.post('/api/auth/register', async (req, res) => {
     const user = new User({ name, email, password: hashedPassword, role });
     await user.save();
     
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key';
+    const token = jwt.sign({ userId: user._id }, jwtSecret, { expiresIn: '7d' });
     
     res.status(201).json({
       message: 'User created successfully',
@@ -86,7 +89,8 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key';
+    const token = jwt.sign({ userId: user._id }, jwtSecret, { expiresIn: '7d' });
     
     res.json({
       message: 'Login successful',
@@ -104,4 +108,6 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-export default app;
+export default function handler(req, res) {
+  return app(req, res);
+}
