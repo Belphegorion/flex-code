@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { FiBell } from 'react-icons/fi';
-import { QrCode } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import socketService from '../../services/socket';
@@ -114,7 +113,9 @@ export default function NotificationBell() {
                         <div className={`w-2 h-2 rounded-full mt-2 ${!notif.read ? 'bg-blue-500' : 'bg-transparent'}`} />
                         {notif.type === 'qr_code' && (
                           <div className="text-primary-600 dark:text-primary-400 mt-1">
-                            <QrCode size={16} />
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M3 11V3h8v8H3zm2-2h4V5H5v4zm8-6h8v8h-8V3zm2 2v4h4V5h-4zM3 21v-8h8v8H3zm2-2h4v-4H5v4zm8-2h2v2h-2v-2zm0-2h2v2h-2v-2zm2 0h2v2h-2v-2zm0 2h2v2h-2v-2zm2-2h2v2h-2v-2zm0 4h2v2h-2v-2zm-2 0h2v2h-2v-2z"/>
+                            </svg>
                           </div>
                         )}
                       </div>
