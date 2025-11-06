@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { FiClock, FiPlay, FiStop, FiQrCode, FiDownload } from 'react-icons/fi';
+import { FiClock, FiPlay, FiSquare, FiQrCode, FiDownload } from 'react-icons/fi';
 import QRScanner from './QRScanner';
 import api from '../../services/api';
 
@@ -165,7 +165,7 @@ export default function WorkHoursTracker({ eventId }) {
               onClick={() => setShowScanner(true)}
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2"
             >
-              <FiStop size={16} />
+              <FiSquare size={16} />
               Scan QR to Check Out
             </button>
           </div>

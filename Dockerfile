@@ -8,6 +8,8 @@ COPY package*.json ./
 # Install dependencies with legacy peer deps for compatibility
 RUN npm install --legacy-peer-deps --no-audit --no-fund
 
+
+
 # Copy source and build
 COPY . .
 RUN npm run build

@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 import { toast } from 'react-toastify';
 import { FiCamera, FiUpload, FiX } from 'react-icons/fi';
-import jsQR from 'jsqr';
 import api from '../../services/api';
 
 export default function QRScanner({ onScanSuccess, onClose }) {
@@ -91,32 +90,18 @@ export default function QRScanner({ onScanSuccess, onClose }) {
     onScanSuccess({ qrData, jobs: userJobs });
   };
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
-        
-        if (code) {
-          handleQRScan(code.data);
-        } else {
-          toast.error('No QR code found in image');
-        }
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+    try {
+      const html5QrCode = new Html5Qrcode('file-qr-reader');
+      const qrCodeMessage = await html5QrCode.scanFile(file, true);
+      handleQRScan(qrCodeMessage);
+      html5QrCode.clear();
+    } catch (error) {
+      toast.error('No QR code found in image');
+    }
   };
 
   return (
@@ -170,6 +155,7 @@ export default function QRScanner({ onScanSuccess, onClose }) {
             </div>
           ) : (
             <div className="text-center py-8">
+              <div id="file-qr-reader" className="hidden"></div>
               <input
                 ref={fileInputRef}
                 type="file"
