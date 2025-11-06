@@ -4,14 +4,29 @@ import { calculateMatchScores } from '../utils/matchingAlgorithm.js';
 
 export const createJob = async (req, res) => {
   try {
+    const { eventId } = req.body;
+    
+    if (!eventId) {
+      return res.status(400).json({ message: 'Event ID is required' });
+    }
+
+    const Event = (await import('../models/Event.js')).default;
+    const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
+    
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found or unauthorized' });
+    }
+
     const jobData = {
       ...req.body,
-      organizerId: req.userId
+      organizerId: req.userId,
+      dateStart: event.dateStart,
+      dateEnd: event.dateEnd,
+      location: event.location
     };
 
     const job = await Job.create(jobData);
 
-    // Generate QR code for attendance
     const qrCode = await generateQRCode(job._id.toString());
     job.qrCode = qrCode;
     await job.save();
@@ -31,15 +46,17 @@ export const getJobs = async (req, res) => {
       return res.status(401).json({ message: 'User ID not found' });
     }
 
-    const { status, skills, city } = req.query;
+    const { status, skills, city, eventId } = req.query;
     const filter = { organizerId: req.userId };
 
+    if (eventId) filter.eventId = eventId;
     if (status) filter.status = status;
     if (skills) filter.requiredSkills = { $in: skills.split(',') };
     if (city) filter['location.city'] = city;
 
     const jobs = await Job.find(filter)
       .populate('organizerId', 'name email')
+      .populate('eventId', 'title dateStart dateEnd')
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
@@ -63,6 +80,7 @@ export const getJobById = async (req, res) => {
 
     const job = await Job.findById(jobId)
       .populate('organizerId', 'name email phone')
+      .populate('eventId', 'title dateStart dateEnd location')
       .populate('hiredPros', 'name email ratingAvg')
       .populate('applicants.proId', 'name email ratingAvg badges');
 
@@ -102,6 +120,7 @@ export const discoverJobs = async (req, res) => {
 
     let jobs = await Job.find(filter)
       .populate('organizerId', 'name ratingAvg')
+      .populate('eventId', 'title dateStart dateEnd location')
       .sort({ createdAt: -1 })
       .limit(50);
 

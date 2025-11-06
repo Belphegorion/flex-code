@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiSend, FiUsers, FiArrowLeft } from 'react-icons/fi';
+import { FiSend, FiUsers, FiArrowLeft, FiUserPlus, FiX, FiSettings, FiUserMinus, FiUserCheck } from 'react-icons/fi';
 import Layout from '../components/common/Layout';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
@@ -13,7 +13,13 @@ export default function GroupChat() {
   const [group, setGroup] = useState(null);
   const [message, setMessage] = useState('');
   const [showMembers, setShowMembers] = useState(false);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [workers, setWorkers] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [addingMember, setAddingMember] = useState(false);
+  const [selectedWorkers, setSelectedWorkers] = useState([]);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -61,6 +67,100 @@ export default function GroupChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const fetchWorkers = async () => {
+    try {
+      const res = await api.get(`/applications/job/${group.jobId._id}`);
+      const acceptedWorkers = (res.applications || [])
+        .filter(app => app.status === 'accepted')
+        .map(app => app.proId)
+        .filter(worker => !group.participants.some(p => p._id === worker._id));
+      setWorkers(acceptedWorkers);
+    } catch (error) {
+      console.error('Error fetching workers:', error);
+    }
+  };
+
+  const handleAddMember = async (workerId) => {
+    setAddingMember(true);
+    try {
+      await api.post(`/groups/${groupId}/members`, { userIds: [workerId] });
+      toast.success('Member added successfully!');
+      setShowAddMember(false);
+      setSearchQuery('');
+      setSelectedWorkers([]);
+      fetchGroup();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to add member');
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const handleBulkAdd = async () => {
+    if (selectedWorkers.length === 0) {
+      toast.error('Please select at least one worker');
+      return;
+    }
+    setAddingMember(true);
+    try {
+      await api.post(`/groups/${groupId}/members`, { userIds: selectedWorkers });
+      toast.success(`${selectedWorkers.length} member(s) added successfully!`);
+      setShowAddMember(false);
+      setSearchQuery('');
+      setSelectedWorkers([]);
+      fetchGroup();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to add members');
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const toggleWorkerSelection = (workerId) => {
+    setSelectedWorkers(prev => 
+      prev.includes(workerId) 
+        ? prev.filter(id => id !== workerId)
+        : [...prev, workerId]
+    );
+  };
+
+  const handleRemoveMember = async (memberId) => {
+    if (!window.confirm('Are you sure you want to remove this member?')) return;
+    
+    try {
+      await api.delete(`/groups/${groupId}/members/${memberId}`);
+      toast.success('Member removed successfully');
+      fetchGroup();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to remove member');
+    }
+  };
+
+  const handleTransferOwnership = async (newOwnerId) => {
+    if (!window.confirm('Are you sure you want to transfer group ownership? You will lose admin privileges.')) return;
+    
+    try {
+      await api.put(`/groups/${groupId}/transfer`, { newOwnerId });
+      toast.success('Ownership transferred successfully');
+      fetchGroup();
+      setShowGroupSettings(false);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to transfer ownership');
+    }
+  };
+
+  const openAddMemberModal = () => {
+    fetchWorkers();
+    setShowAddMember(true);
+  };
+
+  const isOrganizer = user?.role === 'organizer' && group?.createdBy === user?.id;
+
+  const filteredWorkers = workers.filter(worker =>
+    worker.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    worker.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) {
     return (
       <Layout>
@@ -103,13 +203,33 @@ export default function GroupChat() {
               <p className="text-xs opacity-90 truncate">{group.participants?.length} members • {group.jobId?.title}</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowMembers(!showMembers)}
-            className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
-          >
-            <FiUsers size={20} />
-            <span className="text-sm hidden sm:inline">Members</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {isOrganizer && (
+              <>
+                <button
+                  onClick={openAddMemberModal}
+                  className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
+                  title="Add Member"
+                >
+                  <FiUserPlus size={20} />
+                </button>
+                <button
+                  onClick={() => setShowGroupSettings(true)}
+                  className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
+                  title="Group Settings"
+                >
+                  <FiSettings size={20} />
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setShowMembers(!showMembers)}
+              className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
+            >
+              <FiUsers size={20} />
+              <span className="text-sm hidden sm:inline">Members</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-1 overflow-hidden">
@@ -212,6 +332,156 @@ export default function GroupChat() {
             </div>
           )}
         </div>
+
+        {/* Group Settings Modal */}
+        {showGroupSettings && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
+              <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <h3 className="text-lg font-bold">Group Settings</h3>
+                <button
+                  onClick={() => setShowGroupSettings(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div>
+                  <h4 className="font-semibold mb-3">Manage Members</h4>
+                  <div className="space-y-2">
+                    {group.participants?.map(member => (
+                      <div
+                        key={member._id}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-900"
+                      >
+                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 text-white rounded-full flex items-center justify-center font-semibold shadow-md">
+                          {member.name?.charAt(0) || 'U'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{member.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                            {member._id === group.createdBy ? 'Owner' : member.role}
+                          </p>
+                        </div>
+                        {member._id !== group.createdBy && member._id !== user?.id && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleTransferOwnership(member._id)}
+                              className="text-blue-600 hover:text-blue-700 p-2"
+                              title="Transfer Ownership"
+                            >
+                              <FiUserCheck size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleRemoveMember(member._id)}
+                              className="text-red-600 hover:text-red-700 p-2"
+                              title="Remove Member"
+                            >
+                              <FiUserMinus size={18} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Member Modal */}
+        {showAddMember && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
+              {/* Modal Header */}
+              <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <h3 className="text-lg font-bold">Add Member</h3>
+                <button
+                  onClick={() => {
+                    setShowAddMember(false);
+                    setSearchQuery('');
+                  }}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="p-4 border-b dark:border-gray-700">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search workers..."
+                  className="input-field"
+                  autoFocus
+                />
+              </div>
+
+              {/* Workers List */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {filteredWorkers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FiUsers className="mx-auto text-gray-400 mb-2" size={48} />
+                    <p className="text-gray-500">
+                      {searchQuery ? 'No workers found' : 'All accepted workers are already in the group'}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {filteredWorkers.map(worker => (
+                        <div
+                          key={worker._id}
+                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedWorkers.includes(worker._id)}
+                            onChange={() => toggleWorkerSelection(worker._id)}
+                            className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                          />
+                          <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 text-white rounded-full flex items-center justify-center font-semibold shadow-md">
+                            {worker.name?.charAt(0) || 'W'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{worker.name}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{worker.email}</p>
+                          </div>
+                          <button
+                            onClick={() => handleAddMember(worker._id)}
+                            disabled={addingMember}
+                            className="btn-secondary text-sm px-3 py-1"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedWorkers.length > 0 && (
+                      <div className="mt-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg flex items-center justify-between">
+                        <span className="text-sm font-medium">
+                          {selectedWorkers.length} worker(s) selected
+                        </span>
+                        <button
+                          onClick={handleBulkAdd}
+                          disabled={addingMember}
+                          className="btn-primary text-sm px-4 py-2"
+                        >
+                          {addingMember ? 'Adding...' : `Add ${selectedWorkers.length}`}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

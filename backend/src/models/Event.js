@@ -38,10 +38,6 @@ const eventSchema = new mongoose.Schema({
     url: String,
     publicId: String
   },
-  workers: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
   videoCallActive: {
     type: Boolean,
     default: false
@@ -79,11 +75,7 @@ const eventSchema = new mongoose.Schema({
     description: String,
     estimatedAmount: Number
   }],
-  workerCosts: {
-    totalWorkers: { type: Number, default: 0, min: 0 },
-    costPerWorker: { type: Number, default: 0, min: 0 },
-    totalWorkerCost: { type: Number, default: 0, min: 0 }
-  },
+
   revenue: { type: Number, default: 0 },
   estimatedProfit: { type: Number, default: 0 }
 }, {

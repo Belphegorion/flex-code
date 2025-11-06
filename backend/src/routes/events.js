@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, authorize } from '../middleware/auth.js';
 import {
   createEvent,
   uploadTicketImage,
@@ -17,9 +17,15 @@ import {
   getFinancialSummary,
   addEstimatedExpense,
   deleteEstimatedExpense,
-  updateWorkerCosts,
   getActiveEvents
 } from '../controllers/eventController.js';
+import {
+  getEventJobs,
+  createEventJob,
+  updateEventJob,
+  deleteEventJob,
+  getEventProgress
+} from '../controllers/eventJobController.js';
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
@@ -30,7 +36,7 @@ router.get('/financials/summary', authenticate, getFinancialSummary);
 router.post('/video-call/verify', authenticate, verifyQRAccess);
 
 // General routes
-router.post('/', authenticate, createEvent);
+router.post('/', authenticate, authorize('organizer'), createEvent);
 router.get('/', authenticate, getOrganizerEvents);
 
 // Parameterized routes
@@ -45,6 +51,12 @@ router.delete('/:eventId/expenses/:expenseId', authenticate, deleteExpense);
 router.get('/:eventId/financials', authenticate, getFinancials);
 router.post('/:eventId/estimated-expenses', authenticate, addEstimatedExpense);
 router.delete('/:eventId/estimated-expenses/:expenseId', authenticate, deleteEstimatedExpense);
-router.put('/:eventId/worker-costs', authenticate, updateWorkerCosts);
+
+// Event jobs management
+router.get('/:eventId/jobs', authenticate, getEventJobs);
+router.post('/:eventId/jobs', authenticate, authorize('organizer'), createEventJob);
+router.put('/:eventId/jobs/:jobId', authenticate, authorize('organizer'), updateEventJob);
+router.delete('/:eventId/jobs/:jobId', authenticate, authorize('organizer'), deleteEventJob);
+router.get('/:eventId/progress', authenticate, getEventProgress);
 
 export default router;

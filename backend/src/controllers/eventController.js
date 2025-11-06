@@ -4,24 +4,86 @@ import QRCode from 'qrcode';
 
 export const createEvent = async (req, res) => {
   try {
-    const { title, description, location, dateStart, dateEnd, workers } = req.body;
+    const { 
+      title, 
+      description, 
+      location, 
+      dateStart, 
+      dateEnd, 
+      workers,
+      tickets,
+      workerCosts,
+      estimatedExpenses
+    } = req.body;
+
+    // Validation
+    if (!title || !title.trim()) {
+      return res.status(400).json({ message: 'Event title is required' });
+    }
+
+    if (!description || !description.trim()) {
+      return res.status(400).json({ message: 'Event description is required' });
+    }
+
+    if (!dateStart || !dateEnd) {
+      return res.status(400).json({ message: 'Start and end dates are required' });
+    }
+
+    const start = new Date(dateStart);
+    const end = new Date(dateEnd);
+
+    if (start >= end) {
+      return res.status(400).json({ message: 'End date must be after start date' });
+    }
+
+    if (start < new Date()) {
+      return res.status(400).json({ message: 'Start date cannot be in the past' });
+    }
+
+    if (!location || !location.address) {
+      return res.status(400).json({ message: 'Event location is required' });
+    }
 
     if (req.user.role !== 'organizer') {
       return res.status(403).json({ message: 'Only organizers can create events' });
     }
 
+    const ticketRevenue = (tickets?.totalDispersed || 0) * (tickets?.pricePerTicket || 0);
+    const totalEstimatedExpenses = (estimatedExpenses || []).reduce((sum, e) => sum + (e.estimatedAmount || 0), 0);
+    const estimatedProfit = ticketRevenue - totalEstimatedExpenses;
+
     const event = await Event.create({
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       organizerId: req.userId,
       location,
-      dateStart,
-      dateEnd,
-      workers: workers || []
+      dateStart: start,
+      dateEnd: end,
+      tickets: tickets || { totalDispersed: 0, totalSold: 0, pricePerTicket: 0 },
+      estimatedExpenses: estimatedExpenses || [],
+      revenue: 0,
+      estimatedProfit
     });
 
-    res.status(201).json({ message: 'Event created successfully', event });
+    res.status(201).json({ 
+      message: 'Event created successfully', 
+      event,
+      calculations: {
+        ticketRevenue,
+        totalEstimatedExpenses,
+        estimatedProfit
+      }
+    });
   } catch (error) {
+    console.error('Create event error:', error);
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        errors: Object.values(error.errors).map(e => e.message) 
+      });
+    }
+    
     res.status(500).json({ message: 'Error creating event', error: error.message });
   }
 };

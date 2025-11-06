@@ -7,7 +7,8 @@ import {
   sendGroupMessage,
   addMembers,
   removeMember,
-  leaveGroup
+  leaveGroup,
+  transferOwnership
 } from '../controllers/groupChatController.js';
 import { authenticate } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
@@ -36,5 +37,9 @@ router.post('/:id/members', authenticate, [
 
 router.delete('/:id/members/:userId', authenticate, removeMember);
 router.put('/:id/leave', authenticate, leaveGroup);
+router.put('/:id/transfer', authenticate, [
+  body('newOwnerId').notEmpty().withMessage('New owner ID is required'),
+  validate
+], transferOwnership);
 
 export default router;

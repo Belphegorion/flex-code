@@ -10,6 +10,11 @@ const jobSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  eventId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Event',
+    required: true
+  },
   organizerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -98,6 +103,7 @@ const jobSchema = new mongoose.Schema({
 });
 
 // Indexes for search and filtering
+jobSchema.index({ eventId: 1 });
 jobSchema.index({ requiredSkills: 1 });
 jobSchema.index({ status: 1 });
 jobSchema.index({ dateStart: 1 });

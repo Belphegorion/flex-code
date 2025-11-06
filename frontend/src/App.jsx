@@ -16,6 +16,7 @@ import SponsorDashboard from './pages/SponsorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import JobDetails from './pages/JobDetails';
 import JobCreate from './pages/JobCreate';
+import EventCreate from './pages/EventCreate';
 import JobDiscover from './pages/JobDiscover';
 import ProfileView from './pages/ProfileView';
 import Attendance from './pages/Attendance';
@@ -28,6 +29,8 @@ import EventFinancials from './pages/EventFinancials';
 import EventsHero from './pages/EventsHero';
 import CostEstimator from './pages/CostEstimator';
 import ProfileSetup from './pages/ProfileSetup';
+import EventDetails from './pages/EventDetails';
+import EventJobCreate from './pages/EventJobCreate';
 
 function App() {
   return (
@@ -76,6 +79,12 @@ function App() {
             <Route path="/jobs/create" element={
               <ProtectedRoute allowedRoles={['organizer']}>
                 <JobCreate />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/events/create" element={
+              <ProtectedRoute allowedRoles={['organizer']}>
+                <EventCreate />
               </ProtectedRoute>
             } />
             
@@ -130,6 +139,18 @@ function App() {
             <Route path="/events" element={
               <ProtectedRoute allowedRoles={['organizer']}>
                 <EventManagement />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/events/:eventId" element={
+              <ProtectedRoute allowedRoles={['organizer']}>
+                <EventDetails />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/events/:eventId/jobs/create" element={
+              <ProtectedRoute allowedRoles={['organizer']}>
+                <EventJobCreate />
               </ProtectedRoute>
             } />
             

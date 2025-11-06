@@ -30,9 +30,9 @@ const groupChatSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  jobId: {
+  eventId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Job',
+    ref: 'Event',
     required: true
   },
   participants: [{
@@ -57,7 +57,7 @@ const groupChatSchema = new mongoose.Schema({
   timestamps: true
 });
 
-groupChatSchema.index({ jobId: 1 });
+groupChatSchema.index({ eventId: 1 });
 groupChatSchema.index({ participants: 1 });
 
 export default mongoose.model('GroupChat', groupChatSchema);
