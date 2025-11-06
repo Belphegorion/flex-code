@@ -9,10 +9,10 @@ import {
   removeMember,
   leaveGroup,
   transferOwnership,
-  scheduleGroupSession,
-  joinGroupByQR,
+  scheduleVideoMeeting,
+  joinMeeting,
   shareWorkQRInGroup,
-  getGroupQR
+  getMeetingInfo
 } from '../controllers/groupChatController.js';
 import { authenticate } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
@@ -46,18 +46,15 @@ router.put('/:id/transfer', authenticate, [
   validate
 ], transferOwnership);
 
-router.post('/:id/schedule', authenticate, [
-  body('sessionDate').notEmpty().withMessage('Session date is required'),
-  body('sessionTime').notEmpty().withMessage('Session time is required'),
+router.post('/:id/schedule-meeting', authenticate, [
+  body('meetingDate').notEmpty().withMessage('Meeting date is required'),
+  body('meetingTime').notEmpty().withMessage('Meeting time is required'),
+  body('meetingUrl').isURL().withMessage('Valid meeting URL is required'),
   validate
-], scheduleGroupSession);
+], scheduleVideoMeeting);
 
-router.post('/join-qr', authenticate, [
-  body('qrData').notEmpty().withMessage('QR data is required'),
-  validate
-], joinGroupByQR);
-
+router.get('/:id/meeting', authenticate, joinMeeting);
 router.post('/:groupId/share-work-qr', authenticate, shareWorkQRInGroup);
-router.get('/:id/qr', authenticate, getGroupQR);
+router.get('/:id/meeting-info', authenticate, getMeetingInfo);
 
 export default router;

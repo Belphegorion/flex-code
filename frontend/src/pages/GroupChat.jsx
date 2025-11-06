@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiSend, FiUsers, FiArrowLeft, FiUserPlus, FiX, FiSettings, FiUserMinus, FiUserCheck, FiHash, FiClock } from 'react-icons/fi';
+import { FiSend, FiUsers, FiArrowLeft, FiUserPlus, FiX, FiSettings, FiUserMinus, FiUserCheck, FiHash, FiClock, FiVideo } from 'react-icons/fi';
 import Layout from '../components/common/Layout';
-import GroupScheduler from '../components/groups/GroupScheduler';
+import VideoMeetingScheduler from '../components/groups/VideoMeetingScheduler';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import socketService from '../services/socket';
@@ -16,7 +16,7 @@ export default function GroupChat() {
   const [showMembers, setShowMembers] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
-  const [showScheduler, setShowScheduler] = useState(false);
+  const [showMeetingScheduler, setShowMeetingScheduler] = useState(false);
   const [loading, setLoading] = useState(true);
   const [workers, setWorkers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -242,11 +242,11 @@ export default function GroupChat() {
             {isOrganizer && (
               <>
                 <button
-                  onClick={() => setShowScheduler(true)}
+                  onClick={() => setShowMeetingScheduler(true)}
                   className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
-                  title="Schedule Session"
+                  title="Schedule Video Meeting"
                 >
-                  <FiHash size={20} />
+                  <FiVideo size={20} />
                 </button>
                 <button
                   onClick={shareWorkQR}
@@ -317,50 +317,37 @@ export default function GroupChat() {
                       <p className="break-words text-sm leading-relaxed whitespace-pre-line">{msg.text}</p>
                       
                       {/* Display QR code if message contains work QR */}
-                      {msg.text.includes('Work Hours QR Code') && (
+                      {msg.text.includes('Work Hours QR Code') && msg.qrCode && (
                         <div className="mt-3 p-3 bg-white dark:bg-gray-700 rounded-lg">
                           <div className="text-center">
-                            <div className="w-32 h-32 mx-auto mb-2 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center overflow-hidden">
-                              {msg.qrCode ? (
-                                <img 
-                                  src={msg.qrCode} 
-                                  alt="Work Hours QR Code" 
-                                  className="w-full h-full object-contain"
-                                  onClick={() => {
-                                    // Create safe modal without innerHTML
-                                    const modal = document.createElement('div');
-                                    modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4';
-                                    
-                                    const modalContent = document.createElement('div');
-                                    modalContent.className = 'bg-white rounded-lg p-6 max-w-sm w-full text-center';
-                                    
-                                    const img = document.createElement('img');
-                                    img.src = msg.qrCode;
-                                    img.alt = 'Work Hours QR Code';
-                                    img.className = 'w-full mb-4';
-                                    
-                                    const text = document.createElement('p');
-                                    text.className = 'text-sm text-gray-600 mb-4';
-                                    text.textContent = 'Scan to track work hours';
-                                    
-                                    const button = document.createElement('button');
-                                    button.className = 'bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700';
-                                    button.textContent = 'Close';
-                                    button.onclick = () => modal.remove();
-                                    
-                                    modalContent.appendChild(img);
-                                    modalContent.appendChild(text);
-                                    modalContent.appendChild(button);
-                                    modal.appendChild(modalContent);
-                                    document.body.appendChild(modal);
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-xs text-gray-500">Loading QR...</span>
-                              )}
+                            <div className="w-32 h-32 mx-auto mb-2 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer"
+                                 onClick={() => window.open(`/work-qr/${group.eventId._id}`, '_blank')}>
+                              <img 
+                                src={msg.qrCode} 
+                                alt="Work Hours QR Code" 
+                                className="w-full h-full object-contain"
+                              />
                             </div>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Scan to track work hours</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Tap to open QR page</p>
                           </div>
+                        </div>
+                      )}
+                      
+                      {/* Display video meeting info */}
+                      {msg.text.includes('Video Meeting Scheduled') && (
+                        <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <button
+                            onClick={() => {
+                              const meetingUrl = msg.text.match(/Join: (https?:\/\/[^\s]+)/)?.[1];
+                              if (meetingUrl) {
+                                window.open(meetingUrl, '_blank');
+                              }
+                            }}
+                            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                          >
+                            <FiVideo size={16} />
+                            Join Meeting
+                          </button>
                         </div>
                       )}
                       
@@ -581,12 +568,12 @@ export default function GroupChat() {
           </div>
         )}
         
-        {showScheduler && (
-          <GroupScheduler
+        {showMeetingScheduler && (
+          <VideoMeetingScheduler
             groupId={groupId}
-            onClose={() => setShowScheduler(false)}
+            onClose={() => setShowMeetingScheduler(false)}
             onScheduled={() => {
-              setShowScheduler(false);
+              setShowMeetingScheduler(false);
               fetchGroup();
             }}
           />

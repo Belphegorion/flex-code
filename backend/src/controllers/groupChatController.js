@@ -409,112 +409,85 @@ export const transferOwnership = async (req, res) => {
   }
 };
 
-export const scheduleGroupSession = async (req, res) => {
+export const scheduleVideoMeeting = async (req, res) => {
   try {
-    const { sessionDate, sessionTime } = req.body;
+    const { meetingDate, meetingTime, meetingUrl } = req.body;
 
-    if (!sessionDate || !sessionTime) {
-      return res.status(400).json({ message: 'Session date and time are required' });
+    if (!meetingDate || !meetingTime || !meetingUrl) {
+      return res.status(400).json({ message: 'Meeting date, time, and URL are required' });
     }
 
     const group = await GroupChat.findById(req.params.id)
       .populate('eventId', 'title')
-      .populate('allowedWorkers', 'name');
+      .populate('participants', 'name');
 
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
     if (group.createdBy.toString() !== req.userId.toString()) {
-      return res.status(403).json({ message: 'Only group owner can schedule sessions' });
+      return res.status(403).json({ message: 'Only group owner can schedule meetings' });
     }
 
-    // Get all workers from the event
-    const jobs = await Job.find({ eventId: group.eventId });
-    const workerIds = [];
-    jobs.forEach(job => {
-      job.hiredPros.forEach(workerId => {
-        if (!workerIds.includes(workerId.toString())) {
-          workerIds.push(workerId.toString());
-        }
-      });
+    // Update group with meeting info
+    group.meetingScheduled = true;
+    group.meetingDate = new Date(meetingDate);
+    group.meetingTime = meetingTime;
+    group.meetingUrl = meetingUrl;
+
+    // Add system message
+    group.messages.push({
+      senderId: req.userId,
+      text: `📹 Video Meeting Scheduled\n\nDate: ${meetingDate}\nTime: ${meetingTime}\n\nJoin: ${meetingUrl}`,
+      type: 'system'
     });
-
-    // Generate unique QR code
-    const qrToken = crypto.randomBytes(32).toString('hex');
-    const qrData = JSON.stringify({
-      groupId: group._id,
-      token: qrToken,
-      eventId: group.eventId,
-      type: 'group-join'
-    });
-
-    const qrCodeImage = await QRCode.toDataURL(qrData);
-    const expiryTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-    group.qrCode = qrCodeImage;
-    group.qrCodeExpiry = expiryTime;
-    group.sessionScheduled = true;
-    group.sessionDate = new Date(sessionDate);
-    group.sessionTime = sessionTime;
-    group.allowedWorkers = workerIds;
 
     await group.save();
 
-    // Send notifications to all workers
+    // Send notifications to all participants
     const { createNotification } = await import('./notificationController.js');
     const io = req.app.get('io');
+    const otherParticipants = group.participants.filter(
+      p => p._id.toString() !== req.userId.toString()
+    );
 
-    for (const workerId of workerIds) {
-      await createNotification(workerId, {
-        type: 'group',
-        title: 'Group Chat Session Scheduled',
-        message: `Group chat session for ${group.eventId.title} scheduled for ${sessionDate} at ${sessionTime}`,
+    for (const participant of otherParticipants) {
+      await createNotification(participant._id, {
+        type: 'meeting',
+        title: 'Video Meeting Scheduled',
+        message: `Video meeting for ${group.eventId.title} on ${meetingDate} at ${meetingTime}`,
         relatedId: group._id,
         relatedModel: 'GroupChat',
-        actionUrl: `/groups/join?token=${qrToken}`,
-        metadata: { qrToken }
+        actionUrl: `/groups/${group._id}`,
+        metadata: { meetingUrl }
       });
 
-      io.to(`user_${workerId}`).emit('notification', {
-        type: 'group',
-        message: `Group chat session scheduled`,
-        qrCode: qrCodeImage
+      io.to(`user_${participant._id}`).emit('notification', {
+        type: 'meeting',
+        message: `Video meeting scheduled for ${group.name}`
       });
     }
 
+    // Emit to group
+    io.to(`group_${group._id}`).emit('group-message', {
+      groupId: group._id,
+      message: group.messages[group.messages.length - 1]
+    });
+
     res.json({ 
-      message: 'Group session scheduled successfully', 
-      qrCode: qrCodeImage,
-      expiryTime,
-      workersNotified: workerIds.length
+      message: 'Video meeting scheduled successfully',
+      meetingUrl,
+      participantsNotified: otherParticipants.length
     });
   } catch (error) {
-    console.error('Error scheduling group session:', error);
-    res.status(500).json({ message: 'Error scheduling session', error: error.message });
+    console.error('Error scheduling video meeting:', error);
+    res.status(500).json({ message: 'Error scheduling meeting', error: error.message });
   }
 };
 
-export const joinGroupByQR = async (req, res) => {
+export const joinMeeting = async (req, res) => {
   try {
-    const { qrData } = req.body;
-
-    if (!qrData) {
-      return res.status(400).json({ message: 'QR data is required' });
-    }
-
-    let parsedData;
-    try {
-      parsedData = JSON.parse(qrData);
-    } catch (error) {
-      return res.status(400).json({ message: 'Invalid QR code format' });
-    }
-
-    const { groupId, token, eventId } = parsedData;
-
-    if (!groupId || !token || !eventId) {
-      return res.status(400).json({ message: 'Invalid QR code data' });
-    }
+    const { groupId } = req.params;
 
     const group = await GroupChat.findById(groupId)
       .populate('eventId', 'title')
@@ -524,51 +497,25 @@ export const joinGroupByQR = async (req, res) => {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // Check if QR code is expired
-    if (new Date() > group.qrCodeExpiry) {
-      return res.status(400).json({ message: 'QR code has expired' });
+    // Check if user is a participant
+    if (!group.participants.some(p => p._id.toString() === req.userId.toString())) {
+      return res.status(403).json({ message: 'You are not a member of this group' });
     }
 
-    // Check if user is allowed to join (must be a worker for this event)
-    if (!group.allowedWorkers.some(id => id.toString() === req.userId.toString())) {
-      return res.status(403).json({ message: 'You are not authorized to join this group' });
+    if (!group.meetingUrl) {
+      return res.status(400).json({ message: 'No meeting scheduled for this group' });
     }
-
-    // Check if already a participant
-    if (group.participants.some(p => p._id.toString() === req.userId.toString())) {
-      return res.status(400).json({ message: 'You are already a member of this group' });
-    }
-
-    // Add user to group
-    group.participants.push(req.userId);
-    
-    const user = await User.findById(req.userId).select('name');
-    group.messages.push({
-      senderId: req.userId,
-      text: `${user.name} joined the group via QR code`,
-      type: 'system'
-    });
-
-    await group.save();
-
-    // Emit socket event
-    const io = req.app.get('io');
-    io.to(`group_${group._id}`).emit('group-message', {
-      groupId: group._id,
-      message: group.messages[group.messages.length - 1]
-    });
 
     res.json({ 
-      message: 'Successfully joined the group', 
-      group: {
-        _id: group._id,
-        name: group.name,
-        eventTitle: group.eventId.title
-      }
+      meetingUrl: group.meetingUrl,
+      meetingDate: group.meetingDate,
+      meetingTime: group.meetingTime,
+      groupName: group.name,
+      eventTitle: group.eventId.title
     });
   } catch (error) {
-    console.error('Error joining group by QR:', error);
-    res.status(500).json({ message: 'Error joining group', error: error.message });
+    console.error('Error joining meeting:', error);
+    res.status(500).json({ message: 'Error joining meeting', error: error.message });
   }
 };
 
@@ -653,30 +600,30 @@ export const shareWorkQRInGroup = async (req, res) => {
   }
 };
 
-export const getGroupQR = async (req, res) => {
+export const getMeetingInfo = async (req, res) => {
   try {
-    const group = await GroupChat.findById(req.params.id);
+    const group = await GroupChat.findById(req.params.id)
+      .populate('eventId', 'title');
 
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    if (group.createdBy.toString() !== req.userId.toString()) {
-      return res.status(403).json({ message: 'Only group owner can view QR code' });
-    }
-
-    if (!group.qrCode || new Date() > group.qrCodeExpiry) {
-      return res.status(400).json({ message: 'No active QR code found' });
+    // Check if user is a participant
+    if (!group.participants.some(p => p._id.toString() === req.userId.toString())) {
+      return res.status(403).json({ message: 'You are not a member of this group' });
     }
 
     res.json({ 
-      qrCode: group.qrCode,
-      expiryTime: group.qrCodeExpiry,
-      sessionDate: group.sessionDate,
-      sessionTime: group.sessionTime
+      meetingUrl: group.meetingUrl,
+      meetingDate: group.meetingDate,
+      meetingTime: group.meetingTime,
+      meetingScheduled: group.meetingScheduled,
+      groupName: group.name,
+      eventTitle: group.eventId.title
     });
   } catch (error) {
-    console.error('Error getting group QR:', error);
-    res.status(500).json({ message: 'Error getting QR code', error: error.message });
+    console.error('Error getting meeting info:', error);
+    res.status(500).json({ message: 'Error getting meeting info', error: error.message });
   }
 };
