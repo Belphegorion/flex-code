@@ -4,7 +4,7 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-xl font-bold mb-4">EventPro</h3>
+            <h3 className="text-xl font-bold mb-4">EVENTFLEX</h3>
             <p className="text-gray-400 dark:text-gray-500">Connecting event organizers with talented professionals</p>
           </div>
           <div>
@@ -24,7 +24,7 @@ const Footer = () => {
           </div>
         </div>
         <div className="border-t border-gray-700 dark:border-gray-800 mt-8 pt-8 text-center text-gray-400 dark:text-gray-500">
-          <p>&copy; 2025 EventPro. All rights reserved.</p>
+          <p>&copy; 2025 EVENTFLEX. All rights reserved.</p>
         </div>
       </div>
     </footer>

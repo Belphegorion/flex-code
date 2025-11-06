@@ -1,4 +1,4 @@
-# FlexCode - Event Workforce Management Platform
+# EVENTFLEX - Event Workforce Management Platform
 
 A comprehensive platform connecting event organizers with workers, featuring real-time communication, profile management, job applications, and team collaboration.
 
@@ -225,7 +225,7 @@ A comprehensive platform connecting event organizers with workers, featuring rea
 ## 📁 Project Structure
 
 ```
-flex-code/
+eventflex/
 ├── backend/
 │   ├── src/
 │   │   ├── config/
@@ -329,7 +329,7 @@ PORT=4000
 FRONTEND_URL=http://localhost:3000
 
 # Database
-MONGO_URI=mongodb://localhost:27017/flex-code
+MONGO_URI=mongodb://localhost:27017/eventflex
 
 # JWT Secrets
 JWT_SECRET=your_jwt_secret_here
@@ -379,7 +379,7 @@ npm run dev
    - Click "Add upload preset"
    - Set name: `ml_default`
    - Set signing mode: `Unsigned`
-   - Set folder: `eventpro/profiles`
+   - Set folder: `eventflex/profiles`
    - Save
 
 ---
@@ -637,10 +637,10 @@ MIT License - See LICENSE file for details
 
 ## 👥 Contributors
 
-Built with ❤️ by the FlexCode team
+Built with ❤️ by the EVENTFLEX team
 
 ---
 
 ## 📞 Support
 
-For issues and questions, please open a GitHub issue or contact support@flexcode.com
+For issues and questions, please open a GitHub issue or contact support@eventflex.com

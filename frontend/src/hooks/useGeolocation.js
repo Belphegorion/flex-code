@@ -44,7 +44,7 @@ export const useGeolocation = () => {
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-        { headers: { 'User-Agent': 'EventPro/1.0' } }
+        { headers: { 'User-Agent': 'EVENTFLEX/1.0' } }
       );
       const data = await res.json();
       return {

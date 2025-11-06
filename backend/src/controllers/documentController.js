@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import { v2 as cloudinary } from 'cloudinary';
+import fs from 'fs';
 
 export const uploadAadhaar = async (req, res) => {
   try {
@@ -10,9 +11,12 @@ export const uploadAadhaar = async (req, res) => {
     // Upload to Cloudinary
     const result = await cloudinary.uploader.upload(req.file.path, {
       resource_type: 'raw',
-      folder: 'flexcode/documents',
+      folder: 'eventflex/documents',
       format: 'pdf'
     });
+
+    // Clean up temp file
+    fs.unlinkSync(req.file.path);
 
     // Update user document
     await User.findByIdAndUpdate(req.userId, {

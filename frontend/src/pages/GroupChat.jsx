@@ -327,16 +327,31 @@ export default function GroupChat() {
                                   alt="Work Hours QR Code" 
                                   className="w-full h-full object-contain"
                                   onClick={() => {
-                                    // Open QR code in modal for better viewing
+                                    // Create safe modal without innerHTML
                                     const modal = document.createElement('div');
                                     modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4';
-                                    modal.innerHTML = `
-                                      <div class="bg-white rounded-lg p-6 max-w-sm w-full text-center">
-                                        <img src="${msg.qrCode}" alt="Work Hours QR Code" class="w-full mb-4" />
-                                        <p class="text-sm text-gray-600 mb-4">Scan to track work hours</p>
-                                        <button onclick="this.parentElement.parentElement.remove()" class="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700">Close</button>
-                                      </div>
-                                    `;
+                                    
+                                    const modalContent = document.createElement('div');
+                                    modalContent.className = 'bg-white rounded-lg p-6 max-w-sm w-full text-center';
+                                    
+                                    const img = document.createElement('img');
+                                    img.src = msg.qrCode;
+                                    img.alt = 'Work Hours QR Code';
+                                    img.className = 'w-full mb-4';
+                                    
+                                    const text = document.createElement('p');
+                                    text.className = 'text-sm text-gray-600 mb-4';
+                                    text.textContent = 'Scan to track work hours';
+                                    
+                                    const button = document.createElement('button');
+                                    button.className = 'bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700';
+                                    button.textContent = 'Close';
+                                    button.onclick = () => modal.remove();
+                                    
+                                    modalContent.appendChild(img);
+                                    modalContent.appendChild(text);
+                                    modalContent.appendChild(button);
+                                    modal.appendChild(modalContent);
                                     document.body.appendChild(modal);
                                   }}
                                 />

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/common/Layout';
 import JobCard from '../components/common/JobCard';
 import AdvancedSearch from '../components/search/AdvancedSearch';
@@ -11,6 +12,7 @@ import { jobService } from '../services/jobService';
 import api from '../services/api';
 
 const WorkerDashboard = () => {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);

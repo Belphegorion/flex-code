@@ -50,7 +50,7 @@ export default function LocationPicker({ value, location, onChange }) {
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
-        { headers: { 'User-Agent': 'EventPro/1.0' } }
+        { headers: { 'User-Agent': 'EVENTFLEX/1.0' } }
       );
       if (!res.ok) throw new Error('Search failed');
       const data = await res.json();

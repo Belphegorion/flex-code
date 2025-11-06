@@ -59,7 +59,11 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL,
+    origin: [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'https://eventflex.vercel.app',
+      /\.vercel\.app$/
+    ],
     credentials: true
   }
 });
@@ -75,8 +79,8 @@ app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'http://localhost:3000',
-    'http://frontend:80',
-    'http://frontend'
+    'https://eventflex.vercel.app',
+    /\.vercel\.app$/
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
