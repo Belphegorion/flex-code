@@ -182,6 +182,31 @@ export const updateJob = async (req, res) => {
   }
 };
 
+export const getMyJobs = async (req, res) => {
+  try {
+    const Application = (await import('../models/Application.js')).default;
+    
+    const applications = await Application.find({ 
+      workerId: req.userId,
+      status: 'accepted'
+    })
+      .populate({
+        path: 'jobId',
+        populate: {
+          path: 'eventId',
+          select: 'title dateStart dateEnd location status'
+        }
+      })
+      .sort({ createdAt: -1 });
+
+    const jobs = applications.map(app => app.jobId).filter(job => job && job.eventId);
+
+    res.json({ jobs });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching jobs', error: error.message });
+  }
+};
+
 export const hirePro = async (req, res) => {
   try {
     const { proIds } = req.body;

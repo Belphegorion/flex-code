@@ -289,6 +289,85 @@ export const getWorkQRForWorker = async (req, res) => {
   }
 };
 
+export const sendWorkQRToWorkers = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    // Verify organizer owns this event
+    const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found or unauthorized' });
+    }
+
+    // Get or create work schedule for this event
+    let schedule = await WorkSchedule.findOne({ eventId });
+    
+    if (!schedule) {
+      // Create new work schedule with QR code
+      const qrToken = crypto.randomBytes(32).toString('hex');
+      const qrExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+      const qrData = JSON.stringify({
+        eventId,
+        token: qrToken,
+        type: 'work-hours'
+      });
+
+      const qrCode = await QRCode.toDataURL(qrData);
+
+      schedule = await WorkSchedule.create({
+        eventId,
+        organizerId: req.userId,
+        qrCode,
+        qrToken,
+        qrExpiry
+      });
+    }
+
+    // Get all workers for this event
+    const jobs = await Job.find({ eventId });
+    const workerIds = [];
+    jobs.forEach(job => {
+      job.hiredPros.forEach(workerId => {
+        if (!workerIds.includes(workerId.toString())) {
+          workerIds.push(workerId.toString());
+        }
+      });
+    });
+
+    // Send notifications to all workers
+    const { createNotification } = await import('./notificationController.js');
+    const io = req.app.get('io');
+
+    for (const workerId of workerIds) {
+      await createNotification(workerId, {
+        type: 'qr_code',
+        title: 'Work Hours QR Code',
+        message: `Work hours QR code for ${event.title}. Tap to view and start tracking your work hours.`,
+        relatedId: eventId,
+        relatedModel: 'Event',
+        actionUrl: `/work-qr/${eventId}`,
+        metadata: { qrToken: schedule.qrToken, qrCode: schedule.qrCode }
+      });
+
+      io.to(`user_${workerId}`).emit('notification', {
+        type: 'qr_code',
+        message: `Work QR code for ${event.title}`,
+        qrCode: schedule.qrCode,
+        actionUrl: `/work-qr/${eventId}`
+      });
+    }
+
+    res.json({ 
+      message: 'Work QR code sent successfully', 
+      workersNotified: workerIds.length,
+      qrCode: schedule.qrCode
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error sending work QR code', error: error.message });
+  }
+};
+
 export const getEventWorkSummary = async (req, res) => {
   try {
     const { eventId } = req.params;

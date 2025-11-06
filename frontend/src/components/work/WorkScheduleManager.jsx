@@ -1,262 +1,175 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { FiClock, FiSave, FiHash, FiEye, FiUsers, FiDownload, FiShare2 } from 'react-icons/fi';
+import { FiUsers, FiClock, FiDownload, FiShare2 } from 'react-icons/fi';
+import SendWorkQRButton from './SendWorkQRButton';
 import api from '../../services/api';
-import QRCodeModal from './QRCodeModal';
 
-const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
-export default function WorkScheduleManager({ eventId, onScheduleCreated }) {
+export default function WorkScheduleManager({ eventId, eventTitle }) {
   const [schedule, setSchedule] = useState(null);
-  const [weeklySchedule, setWeeklySchedule] = useState({
-    monday: { startTime: '09:00', endTime: '17:00', isActive: false },
-    tuesday: { startTime: '09:00', endTime: '17:00', isActive: false },
-    wednesday: { startTime: '09:00', endTime: '17:00', isActive: false },
-    thursday: { startTime: '09:00', endTime: '17:00', isActive: false },
-    friday: { startTime: '09:00', endTime: '17:00', isActive: false },
-    saturday: { startTime: '09:00', endTime: '17:00', isActive: false },
-    sunday: { startTime: '09:00', endTime: '17:00', isActive: false }
-  });
-  const [loading, setLoading] = useState(false);
-  const [showQR, setShowQR] = useState(false);
-  const [showQRModal, setShowQRModal] = useState(false);
-  const [workers, setWorkers] = useState([]);
-  const [workingSummary, setWorkingSummary] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSchedule();
-    fetchWorkers();
-    fetchWorkingSummary();
+    fetchWorkData();
   }, [eventId]);
 
-  const fetchSchedule = async () => {
+  const fetchWorkData = async () => {
     try {
-      const res = await api.get(`/work-schedule/${eventId}`);
-      setSchedule(res.schedule);
-      setWeeklySchedule(res.schedule.weeklySchedule);
+      const [scheduleRes, summaryRes] = await Promise.all([
+        api.get(`/work-schedule/${eventId}`),
+        api.get(`/work-schedule/${eventId}/summary`)
+      ]);
+      
+      setSchedule(scheduleRes.schedule);
+      setSummary(summaryRes);
     } catch (error) {
-      // Schedule doesn't exist yet, that's okay
-    }
-  };
-
-  const fetchWorkers = async () => {
-    try {
-      const res = await api.get(`/event-workers/${eventId}`);
-      setWorkers(res.workers || []);
-    } catch (error) {
-      console.error('Error fetching workers:', error);
-    }
-  };
-
-  const fetchWorkingSummary = async () => {
-    try {
-      const res = await api.get(`/work-schedule/${eventId}/summary`);
-      setWorkingSummary(res);
-    } catch (error) {
-      console.error('Error fetching work summary:', error);
-    }
-  };
-
-  const downloadQR = () => {
-    if (!schedule?.qrCode) return;
-    
-    const link = document.createElement('a');
-    link.href = schedule.qrCode;
-    link.download = `work-hours-qr-${eventId}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('QR code downloaded');
-  };
-
-  const copyQRLink = async () => {
-    if (!schedule?.qrCode) return;
-    
-    try {
-      await navigator.clipboard.writeText(schedule.qrCode);
-      toast.success('QR code link copied to clipboard');
-    } catch (error) {
-      toast.error('Failed to copy QR code link');
-    }
-  };
-
-  const handleDayToggle = (day) => {
-    setWeeklySchedule(prev => ({
-      ...prev,
-      [day]: { ...prev[day], isActive: !prev[day].isActive }
-    }));
-  };
-
-  const handleTimeChange = (day, field, value) => {
-    setWeeklySchedule(prev => ({
-      ...prev,
-      [day]: { ...prev[day], [field]: value }
-    }));
-  };
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      if (schedule) {
-        await api.put(`/work-schedule/${eventId}`, { weeklySchedule });
-        toast.success('Work schedule updated successfully');
-      } else {
-        const res = await api.post('/work-schedule', { eventId, weeklySchedule });
-        setSchedule(res.schedule);
-        toast.success('Work schedule created successfully');
-        onScheduleCreated?.(res.schedule);
-        fetchWorkers();
-        fetchWorkingSummary();
-      }
-      fetchSchedule();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save schedule');
+      console.error('Error fetching work data:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const downloadQR = async () => {
+    try {
+      if (!schedule?.qrCode) {
+        toast.error('No QR code available');
+        return;
+      }
+      
+      const link = document.createElement('a');
+      link.href = schedule.qrCode;
+      link.download = `work-qr-${eventTitle}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('QR code downloaded!');
+    } catch (error) {
+      toast.error('Failed to download QR code');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Work Schedule</h3>
-        {schedule && (
+      {/* QR Management */}
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <FiClock className="text-primary-600" />
+            Work Hours QR Management
+          </h3>
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowQR(!showQR)}
-              className="btn-secondary flex items-center gap-2"
-            >
-              <FiHash /> {showQR ? 'Hide' : 'Show'} QR Code
-            </button>
-            <button
-              onClick={() => setShowQRModal(true)}
-              className="btn-primary flex items-center gap-2"
-            >
-              <FiEye /> View QR
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Worker Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-          <div className="flex items-center gap-3">
-            <FiUsers className="text-blue-600" size={24} />
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Workers</p>
-              <p className="text-2xl font-bold text-blue-600">{workers.length}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-          <div className="flex items-center gap-3">
-            <FiClock className="text-green-600" size={24} />
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Currently Working</p>
-              <p className="text-2xl font-bold text-green-600">
-                {workingSummary?.workers?.filter(w => w.sessions.some(s => s.status === 'checked-in')).length || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-          <div className="flex items-center gap-3">
-            <FiHash className="text-purple-600" size={24} />
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Hours</p>
-              <p className="text-2xl font-bold text-purple-600">
-                {Math.round((workingSummary?.overall?.totalHours || 0) * 100) / 100}h
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {showQR && schedule?.qrCode && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
-          <div className="text-center">
-            <img 
-              src={schedule.qrCode} 
-              alt="Work Hours QR" 
-              className="mx-auto mb-4" 
-              style={{ maxWidth: '250px' }}
-            />
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Workers scan this QR code to check in/out for work hours
-            </p>
-            <div className="flex justify-center gap-3">
+            <SendWorkQRButton eventId={eventId} eventTitle={eventTitle} />
+            {schedule?.qrCode && (
               <button
                 onClick={downloadQR}
                 className="btn-secondary flex items-center gap-2"
               >
-                <FiDownload /> Download
+                <FiDownload size={16} />
+                Download QR
               </button>
-              <button
-                onClick={copyQRLink}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <FiShare2 /> Copy Link
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-4">
-        {DAYS.map(day => (
-          <div key={day} className="flex items-center gap-4 p-4 border rounded-lg">
-            <div className="flex items-center gap-2 w-24">
-              <input
-                type="checkbox"
-                checked={weeklySchedule[day].isActive}
-                onChange={() => handleDayToggle(day)}
-                className="w-4 h-4"
-              />
-              <span className="capitalize font-medium">{day}</span>
-            </div>
-            
-            {weeklySchedule[day].isActive && (
-              <div className="flex items-center gap-4 flex-1">
-                <div className="flex items-center gap-2">
-                  <FiClock size={16} />
-                  <input
-                    type="time"
-                    value={weeklySchedule[day].startTime}
-                    onChange={(e) => handleTimeChange(day, 'startTime', e.target.value)}
-                    className="input-field py-1 px-2 text-sm"
-                  />
-                </div>
-                <span>to</span>
-                <input
-                  type="time"
-                  value={weeklySchedule[day].endTime}
-                  onChange={(e) => handleTimeChange(day, 'endTime', e.target.value)}
-                  className="input-field py-1 px-2 text-sm"
-                />
-              </div>
             )}
           </div>
-        ))}
+        </div>
+
+        {schedule?.qrCode ? (
+          <div className="flex flex-col md:flex-row gap-6 items-center">
+            <div className="bg-white p-4 rounded-lg shadow-lg">
+              <img
+                src={schedule.qrCode}
+                alt="Work Hours QR Code"
+                className="w-48 h-48"
+              />
+            </div>
+            <div className="flex-1 space-y-3">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">QR Code Status:</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Valid until: {new Date(schedule.qrExpiry).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">How workers use this:</h4>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <li>• Scan QR code with camera or upload image</li>
+                  <li>• Select their job for the event</li>
+                  <li>• Check in/out to track work hours</li>
+                  <li>• View earnings and session history</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <FiClock className="mx-auto text-gray-400 mb-4" size={48} />
+            <p className="text-gray-500 mb-4">No work schedule created yet</p>
+            <p className="text-sm text-gray-400">
+              Send QR code to workers to enable work hours tracking
+            </p>
+          </div>
+        )}
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={loading}
-        className="btn-primary flex items-center gap-2 w-full"
-      >
-        <FiSave />
-        {loading ? 'Saving...' : schedule ? 'Update Schedule' : 'Create Schedule'}
-      </button>
-      
-      {showQRModal && schedule?.qrCode && (
-        <QRCodeModal
-          qrCode={schedule.qrCode}
-          title="Work Hours QR Code"
-          onClose={() => setShowQRModal(false)}
-        />
+      {/* Work Summary */}
+      {summary && (
+        <div className="card p-6">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <FiUsers className="text-primary-600" />
+            Work Summary
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-blue-600">{summary.overall?.totalWorkers || 0}</div>
+              <div className="text-sm text-gray-600">Active Workers</div>
+            </div>
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-green-600">{summary.overall?.totalHours || 0}h</div>
+              <div className="text-sm text-gray-600">Total Hours</div>
+            </div>
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-purple-600">${summary.overall?.totalEarnings || 0}</div>
+              <div className="text-sm text-gray-600">Total Earnings</div>
+            </div>
+            <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-orange-600">{summary.overall?.totalSessions || 0}</div>
+              <div className="text-sm text-gray-600">Work Sessions</div>
+            </div>
+          </div>
+
+          {summary.workers && summary.workers.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-medium">Worker Details:</h4>
+              {summary.workers.map((worker, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 text-white rounded-full flex items-center justify-center font-semibold">
+                      {worker.worker.name?.charAt(0) || 'W'}
+                    </div>
+                    <div>
+                      <div className="font-medium">{worker.worker.name}</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        {worker.badge?.tier} • {worker.sessions.length} sessions
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium">{worker.totalHours}h</div>
+                    <div className="text-sm text-green-600">${worker.totalEarnings}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

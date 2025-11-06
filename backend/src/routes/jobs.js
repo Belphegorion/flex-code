@@ -6,7 +6,8 @@ import {
   getJobById,
   discoverJobs,
   updateJob,
-  hirePro
+  hirePro,
+  getMyJobs
 } from '../controllers/jobController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
@@ -15,6 +16,7 @@ const router = express.Router();
 
 // Specific routes first
 router.get('/discover', authenticate, authorize('worker'), discoverJobs);
+router.get('/my-jobs', authenticate, authorize('worker'), getMyJobs);
 
 // General routes
 router.post('/', authenticate, authorize('organizer'), [

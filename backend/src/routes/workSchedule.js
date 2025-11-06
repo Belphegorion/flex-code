@@ -8,6 +8,7 @@ import {
   checkOutWorker,
   getWorkerSessions,
   getWorkQRForWorker,
+  sendWorkQRToWorkers,
   getEventWorkSummary
 } from '../controllers/workScheduleController.js';
 
@@ -17,6 +18,7 @@ const router = express.Router();
 router.post('/', authenticate, authorize('organizer'), createWorkSchedule);
 router.get('/:eventId', authenticate, getWorkSchedule);
 router.put('/:eventId', authenticate, authorize('organizer'), updateWorkSchedule);
+router.post('/:eventId/send-qr', authenticate, authorize('organizer'), sendWorkQRToWorkers);
 router.get('/:eventId/summary', authenticate, authorize('organizer'), getEventWorkSummary);
 
 // Worker routes
