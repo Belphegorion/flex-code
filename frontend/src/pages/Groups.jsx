@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiUsers, FiMessageCircle } from 'react-icons/fi';
+import { FiUsers, FiMessageCircle, FiSearch } from 'react-icons/fi';
 import Layout from '../components/common/Layout';
 import api from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Groups() {
+  const { user } = useAuth();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchGroups();
@@ -34,66 +37,117 @@ export default function Groups() {
     );
   }
 
+  const filteredGroups = groups.filter(group => 
+    group.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    group.jobId?.title?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const formatTime = (date) => {
+    const now = new Date();
+    const messageDate = new Date(date);
+    const diffInHours = (now - messageDate) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffInHours < 48) {
+      return 'Yesterday';
+    } else {
+      return messageDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
+
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">My Groups</h1>
-
-        {groups.length === 0 ? (
-          <div className="card p-12 text-center">
-            <FiUsers className="mx-auto text-gray-400 mb-4" size={48} />
-            <p className="text-gray-500">No groups yet</p>
-            <p className="text-sm text-gray-400 mt-2">Groups will be created when jobs start</p>
+      <div className="max-w-5xl mx-auto h-[calc(100vh-80px)]">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg h-full flex flex-col">
+          {/* Header */}
+          <div className="bg-primary-600 dark:bg-primary-700 text-white p-4 rounded-t-lg">
+            <h1 className="text-2xl font-bold mb-3">Messages</h1>
+            <div className="relative">
+              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300" size={18} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search conversations..."
+                className="w-full pl-10 pr-4 py-2 rounded-lg bg-primary-700 dark:bg-primary-800 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-white/30"
+              />
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {groups.map((group, idx) => (
-              <motion.div
-                key={group._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-              >
-                <Link
-                  to={`/groups/${group._id}`}
-                  className="card p-6 hover:shadow-lg transition-shadow block"
-                >
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center flex-shrink-0">
-                      <FiUsers size={24} />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg mb-1">{group.name}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {group.jobId?.title}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {group.participants?.length} members
-                    </span>
-                    {group.lastMessage && (
-                      <span className="text-gray-500 text-xs">
-                        {new Date(group.lastMessageAt).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
+          {/* Chat List */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="flex justify-center items-center h-full">
+                <div className="w-12 h-12 border-4 border-gray-200 dark:border-gray-700 border-t-primary-600 rounded-full animate-spin"></div>
+              </div>
+            ) : filteredGroups.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                <FiMessageCircle className="text-gray-400 mb-4" size={64} />
+                <p className="text-gray-500 text-lg font-medium">No conversations yet</p>
+                <p className="text-sm text-gray-400 mt-2">
+                  {searchQuery ? 'No results found' : 'Start a conversation by accepting a job application'}
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y dark:divide-gray-700">
+                {filteredGroups.map((group, idx) => (
+                  <motion.div
+                    key={group._id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                  >
+                    <Link
+                      to={`/groups/${group._id}`}
+                      className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    >
+                      {/* Avatar */}
+                      <div className="relative flex-shrink-0">
+                        <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-700 text-white rounded-full flex items-center justify-center text-xl font-bold shadow-md">
+                          {group.name?.charAt(0) || 'G'}
+                        </div>
+                        {group.lastMessageAt && new Date() - new Date(group.lastMessageAt) < 3600000 && (
+                          <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                        )}
+                      </div>
 
-                  {group.lastMessage && (
-                    <div className="mt-3 pt-3 border-t dark:border-gray-700">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 truncate flex items-center gap-2">
-                        <FiMessageCircle size={14} />
-                        {group.lastMessage}
-                      </p>
-                    </div>
-                  )}
-                </Link>
-              </motion.div>
-            ))}
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between mb-1">
+                          <h3 className="font-semibold text-base truncate">{group.name}</h3>
+                          {group.lastMessageAt && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 flex-shrink-0">
+                              {formatTime(group.lastMessageAt)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">
+                          {group.jobId?.title}
+                        </p>
+                        {group.lastMessage ? (
+                          <p className="text-sm text-gray-600 dark:text-gray-300 truncate flex items-center gap-1">
+                            <FiMessageCircle size={12} className="flex-shrink-0" />
+                            <span className="truncate">{group.lastMessage}</span>
+                          </p>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">No messages yet</p>
+                        )}
+                      </div>
+
+                      {/* Unread Badge (placeholder for future) */}
+                      {/* <div className="flex-shrink-0">
+                        <div className="w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                          3
+                        </div>
+                      </div> */}
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </Layout>
   );

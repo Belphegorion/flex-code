@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
-import { FiLogOut, FiUser, FiMoon, FiSun, FiMenu, FiX } from 'react-icons/fi';
+import { FiLogOut, FiUser, FiMoon, FiSun, FiMenu, FiX, FiMessageCircle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from './NotificationBell';
 
@@ -48,6 +48,11 @@ const Navbar = () => {
               {isDark ? <FiSun className="text-yellow-400" size={20} /> : <FiMoon className="text-gray-600" size={20} />}
             </button>
             {user && <NotificationBell />}
+            {user && (user.role === 'worker' || user.role === 'organizer') && (
+              <Link to="/groups" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Messages">
+                <FiMessageCircle size={20} />
+              </Link>
+            )}
             {user ? (
               <>
                 <Link to={getDashboardLink()} className="nav-link">
@@ -113,6 +118,16 @@ const Navbar = () => {
                   >
                     Dashboard
                   </Link>
+                  {(user.role === 'worker' || user.role === 'organizer') && (
+                    <Link 
+                      to="/groups" 
+                      className="flex items-center py-2 nav-link"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <FiMessageCircle className="mr-2" />
+                      Messages
+                    </Link>
+                  )}
                   <Link 
                     to={`/profile/${user.id}`} 
                     className="flex items-center py-2 nav-link"

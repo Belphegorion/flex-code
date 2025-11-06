@@ -85,34 +85,37 @@ export default function GroupChat() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto h-[calc(100vh-120px)] flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+      <div className="max-w-6xl mx-auto h-[calc(100vh-80px)] flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
         {/* Header */}
-        <div className="bg-primary-600 dark:bg-primary-700 text-white p-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
+        <div className="bg-primary-600 dark:bg-primary-700 text-white p-4 flex justify-between items-center shadow-md">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <button 
               onClick={() => window.history.back()}
-              className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors"
+              className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex-shrink-0"
             >
               <FiArrowLeft size={20} />
             </button>
-            <div>
-              <h2 className="text-xl font-bold">{group.name}</h2>
-              <p className="text-sm opacity-90">{group.participants?.length} members • {group.jobId?.title}</p>
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0">
+              {group.name?.charAt(0) || 'G'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-bold truncate">{group.name}</h2>
+              <p className="text-xs opacity-90 truncate">{group.participants?.length} members • {group.jobId?.title}</p>
             </div>
           </div>
           <button
             onClick={() => setShowMembers(!showMembers)}
-            className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2"
+            className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
           >
             <FiUsers size={20} />
-            <span className="text-sm">Members</span>
+            <span className="text-sm hidden sm:inline">Members</span>
           </button>
         </div>
 
         <div className="flex flex-1 overflow-hidden">
           {/* Messages */}
           <div className="flex-1 flex flex-col">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}>
               {group.messages?.map((msg, idx) => {
                 const isOwn = msg.senderId?._id === user?.id || msg.senderId === user?.id;
                 const isSystem = msg.type === 'system';
@@ -130,22 +133,29 @@ export default function GroupChat() {
                 return (
                   <div
                     key={idx}
-                    className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-fadeIn`}
                   >
                     <div className={`max-w-xs lg:max-w-md ${
                       isOwn
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                    } rounded-lg p-3 shadow`}>
+                        ? 'bg-primary-500 text-white rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-md'
+                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-md'
+                    } p-3 shadow-md relative`}>
                       {!isOwn && (
-                        <p className="text-xs font-semibold mb-1 opacity-75">
+                        <p className="text-xs font-semibold mb-1 text-primary-600 dark:text-primary-400">
                           {msg.senderId?.name || 'Unknown'}
                         </p>
                       )}
-                      <p className="break-words">{msg.text}</p>
-                      <p className={`text-xs mt-1 ${isOwn ? 'opacity-75' : 'opacity-50'}`}>
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+                      <p className="break-words text-sm leading-relaxed">{msg.text}</p>
+                      <div className="flex items-center justify-end gap-1 mt-1">
+                        <p className={`text-xs ${isOwn ? 'text-white/70' : 'text-gray-500'}`}>
+                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                        {isOwn && (
+                          <svg className="w-4 h-4 text-white/70" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                          </svg>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -154,21 +164,26 @@ export default function GroupChat() {
             </div>
 
             {/* Input */}
-            <form onSubmit={sendMessage} className="p-4 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
-              <div className="flex gap-2">
+            <form onSubmit={sendMessage} className="p-4 bg-gray-100 dark:bg-gray-800 border-t dark:border-gray-700">
+              <div className="flex gap-3 items-end">
                 <input
                   type="text"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Type a message..."
-                  className="input-field flex-1"
+                  className="flex-1 px-4 py-3 rounded-full bg-white dark:bg-gray-700 border-0 focus:ring-2 focus:ring-primary-500 transition-all"
+                  autoFocus
                 />
                 <button 
                   type="submit" 
-                  className="btn-primary px-6"
+                  className={`p-3 rounded-full transition-all transform ${
+                    message.trim() 
+                      ? 'bg-primary-600 hover:bg-primary-700 text-white hover:scale-110' 
+                      : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
+                  }`}
                   disabled={!message.trim()}
                 >
-                  <FiSend />
+                  <FiSend size={20} />
                 </button>
               </div>
             </form>
@@ -176,17 +191,20 @@ export default function GroupChat() {
 
           {/* Members Sidebar */}
           {showMembers && (
-            <div className="w-64 bg-white dark:bg-gray-800 border-l dark:border-gray-700 p-4 overflow-y-auto">
-              <h3 className="font-bold mb-4 text-lg">Members ({group.participants?.length})</h3>
-              <div className="space-y-3">
+            <div className="w-64 bg-white dark:bg-gray-800 border-l dark:border-gray-700 overflow-y-auto">
+              <div className="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                <h3 className="font-bold text-lg">Members</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{group.participants?.length} participants</p>
+              </div>
+              <div className="p-4 space-y-3">
                 {group.participants?.map(member => (
-                  <div key={member._id} className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-600 text-white rounded-full flex items-center justify-center font-semibold">
+                  <div key={member._id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 text-white rounded-full flex items-center justify-center font-semibold shadow-md">
                       {member.name?.charAt(0) || 'U'}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{member.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{member.role}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{member.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{member.role}</p>
                     </div>
                   </div>
                 ))}

@@ -93,13 +93,15 @@ export const sendGroupMessage = async (req, res) => {
       return res.status(400).json({ message: 'Message text is required' });
     }
 
-    const group = await GroupChat.findById(req.params.id);
+    const group = await GroupChat.findById(req.params.id)
+      .populate('participants', 'name')
+      .populate('jobId', 'title');
 
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    if (!group.participants.includes(req.userId)) {
+    if (!group.participants.some(p => p._id.toString() === req.userId.toString())) {
       return res.status(403).json({ message: 'Not a member of this group' });
     }
 
@@ -116,14 +118,43 @@ export const sendGroupMessage = async (req, res) => {
     group.lastMessageAt = new Date();
     await group.save();
 
+    // Get sender info
+    const User = (await import('../models/User.js')).default;
+    const sender = await User.findById(req.userId).select('name');
+
+    // Emit socket event to group
     const io = req.app.get('io');
     io.to(`group_${group._id}`).emit('group-message', {
       groupId: group._id,
       message: group.messages[group.messages.length - 1]
     });
 
+    // Create notifications for other participants
+    const { createNotification } = await import('./notificationController.js');
+    const otherParticipants = group.participants.filter(
+      p => p._id.toString() !== req.userId.toString()
+    );
+
+    for (const participant of otherParticipants) {
+      await createNotification(participant._id, {
+        type: 'message',
+        title: `New message in ${group.name}`,
+        message: `${sender.name}: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`,
+        relatedId: group._id,
+        relatedModel: 'GroupChat',
+        actionUrl: `/groups/${group._id}`
+      });
+
+      // Emit notification to user
+      io.to(`user_${participant._id}`).emit('notification', {
+        type: 'message',
+        message: `New message from ${sender.name}`
+      });
+    }
+
     res.json({ message: 'Message sent', data: message });
   } catch (error) {
+    console.error('Error sending group message:', error);
     res.status(500).json({ message: 'Error sending message', error: error.message });
   }
 };
