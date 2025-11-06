@@ -54,7 +54,12 @@ export default function JobApplicants() {
   };
 
   const startChat = async (workerId, workerName) => {
-    const groupName = prompt(`Enter group name for ${workerName}:`, `${job?.title} - Team Chat`);
+    if (!job?.eventId) {
+      toast.error('Event information not found');
+      return;
+    }
+
+    const groupName = prompt(`Enter group name for ${workerName}:`, `${job?.eventId?.title || 'Event'} - Team Chat`);
     
     if (!groupName || !groupName.trim()) {
       toast.error('Group name is required');
@@ -64,7 +69,7 @@ export default function JobApplicants() {
     try {
       const res = await api.post('/groups', {
         name: groupName.trim(),
-        jobId,
+        eventId: typeof job.eventId === 'object' ? job.eventId._id : job.eventId,
         participants: [workerId]
       });
       navigate(`/groups/${res.group._id}`);

@@ -194,10 +194,9 @@ export const verifyQRAccess = async (req, res) => {
       return res.status(403).json({ message: 'Video call not active or invalid QR' });
     }
 
-    const isWorker = event.workers.some(w => w.toString() === req.userId.toString());
     const isOrganizer = event.organizerId.toString() === req.userId.toString();
 
-    if (!isWorker && !isOrganizer) {
+    if (!isOrganizer) {
       return res.status(403).json({ message: 'Not authorized to join this call' });
     }
 
@@ -214,7 +213,6 @@ export const verifyQRAccess = async (req, res) => {
 export const getOrganizerEvents = async (req, res) => {
   try {
     const events = await Event.find({ organizerId: req.userId })
-      .populate('workers', 'name email')
       .sort({ dateStart: -1 });
 
     res.json({ events });
@@ -228,17 +226,15 @@ export const getEventDetails = async (req, res) => {
     const { eventId } = req.params;
 
     const event = await Event.findById(eventId)
-      .populate('organizerId', 'name email')
-      .populate('workers', 'name email');
+      .populate('organizerId', 'name email');
 
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
 
     const isOrganizer = event.organizerId._id.toString() === req.userId.toString();
-    const isWorker = event.workers.some(w => w._id.toString() === req.userId.toString());
 
-    if (!isOrganizer && !isWorker) {
+    if (!isOrganizer) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
@@ -382,9 +378,7 @@ export const addEstimatedExpense = async (req, res) => {
     event.estimatedExpenses.push({ category, description, estimatedAmount });
     
     const totalEstimatedExpenses = event.estimatedExpenses.reduce((sum, e) => sum + e.estimatedAmount, 0);
-    const totalWorkerCost = event.workerCosts.totalWorkerCost || 0;
-    const totalCost = totalEstimatedExpenses + totalWorkerCost;
-    event.estimatedProfit = (event.tickets.totalDispersed * event.tickets.pricePerTicket) - totalCost;
+    event.estimatedProfit = (event.tickets.totalDispersed * event.tickets.pricePerTicket) - totalEstimatedExpenses;
     
     await event.save();
 
@@ -406,9 +400,7 @@ export const deleteEstimatedExpense = async (req, res) => {
     event.estimatedExpenses = event.estimatedExpenses.filter(e => e._id.toString() !== expenseId);
     
     const totalEstimatedExpenses = event.estimatedExpenses.reduce((sum, e) => sum + e.estimatedAmount, 0);
-    const totalWorkerCost = event.workerCosts.totalWorkerCost || 0;
-    const totalCost = totalEstimatedExpenses + totalWorkerCost;
-    event.estimatedProfit = (event.tickets.totalDispersed * event.tickets.pricePerTicket) - totalCost;
+    event.estimatedProfit = (event.tickets.totalDispersed * event.tickets.pricePerTicket) - totalEstimatedExpenses;
     
     await event.save();
 
@@ -454,19 +446,17 @@ export const getActiveEvents = async (req, res) => {
       dateStart: { $lte: now },
       dateEnd: { $gte: now },
       status: { $in: ['upcoming', 'ongoing'] }
-    }).populate('workers', 'name email').sort({ dateStart: -1 });
+    }).sort({ dateStart: -1 });
 
     const eventsWithCalculations = events.map(event => {
       const actualExpenses = event.expenses.reduce((sum, e) => sum + e.amount, 0);
-      const workerCost = event.workers.length * (event.workerCosts.costPerWorker || 0);
-      const totalExpenses = actualExpenses + workerCost;
+      const totalExpenses = actualExpenses;
       const netProfit = event.revenue - totalExpenses;
 
       return {
         ...event.toObject(),
         calculatedFinancials: {
           actualExpenses,
-          workerCost,
           totalExpenses,
           netProfit
         }

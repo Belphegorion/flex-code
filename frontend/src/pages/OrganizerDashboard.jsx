@@ -39,23 +39,9 @@ const OrganizerDashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Organizer Dashboard</h1>
-          <div className="flex gap-3 flex-wrap">
-            <Link to="/events/create" className="btn-primary flex items-center gap-2">
-              <FiCalendar /> Create Event
-            </Link>
-            <Link to="/jobs/create" className="btn-primary flex items-center gap-2">
-              + Post Job
-            </Link>
-            <Link to="/events" className="btn-secondary flex items-center gap-2">
-              <FiCalendar /> All Events
-            </Link>
-            <Link to="/cost-estimator" className="btn-secondary flex items-center gap-2">
-              <FiDollarSign /> Cost Estimator
-            </Link>
-            <Link to="/events-hero" className="btn-secondary flex items-center gap-2">
-              <FiActivity /> Live Events
-            </Link>
-          </div>
+          <Link to="/events/create" className="btn-primary flex items-center gap-2">
+            <FiCalendar /> Create Event
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

@@ -23,9 +23,16 @@ export default function EventCreate() {
   const [totalDispersed, setTotalDispersed] = useState('');
   const [pricePerTicket, setPricePerTicket] = useState('');
 
-  // Workers
-  const [totalWorkers, setTotalWorkers] = useState('');
-  const [costPerWorker, setCostPerWorker] = useState('');
+  // Jobs
+  const [jobs, setJobs] = useState([]);
+  const [newJob, setNewJob] = useState({
+    title: '',
+    description: '',
+    payPerPerson: '',
+    totalPositions: '',
+    requiredSkills: [],
+    skillInput: ''
+  });
 
   // Estimated Expenses
   const [estimatedExpenses, setEstimatedExpenses] = useState([]);
@@ -44,9 +51,45 @@ export default function EventCreate() {
     setEstimatedExpenses(estimatedExpenses.filter((_, i) => i !== index));
   };
 
+  const addSkill = () => {
+    if (newJob.skillInput.trim() && !newJob.requiredSkills.includes(newJob.skillInput.trim())) {
+      setNewJob({
+        ...newJob,
+        requiredSkills: [...newJob.requiredSkills, newJob.skillInput.trim()],
+        skillInput: ''
+      });
+    }
+  };
+
+  const removeSkill = (skill) => {
+    setNewJob({
+      ...newJob,
+      requiredSkills: newJob.requiredSkills.filter(s => s !== skill)
+    });
+  };
+
+  const addJob = () => {
+    if (!newJob.title || !newJob.payPerPerson || !newJob.totalPositions || newJob.requiredSkills.length === 0) {
+      toast.error('Please fill all job fields and add at least one skill');
+      return;
+    }
+    setJobs([...jobs, {
+      title: newJob.title,
+      description: newJob.description,
+      payPerPerson: parseFloat(newJob.payPerPerson),
+      totalPositions: parseInt(newJob.totalPositions),
+      requiredSkills: newJob.requiredSkills
+    }]);
+    setNewJob({ title: '', description: '', payPerPerson: '', totalPositions: '', requiredSkills: [], skillInput: '' });
+  };
+
+  const removeJob = (index) => {
+    setJobs(jobs.filter((_, i) => i !== index));
+  };
+
   // Calculations
   const ticketRevenue = (parseFloat(totalDispersed) || 0) * (parseFloat(pricePerTicket) || 0);
-  const workerCost = (parseFloat(totalWorkers) || 0) * (parseFloat(costPerWorker) || 0);
+  const workerCost = jobs.reduce((sum, job) => sum + (job.payPerPerson * job.totalPositions), 0);
   const totalExpenses = estimatedExpenses.reduce((sum, e) => sum + e.estimatedAmount, 0);
   const estimatedProfit = ticketRevenue - workerCost - totalExpenses;
 
@@ -91,16 +134,22 @@ export default function EventCreate() {
           totalSold: 0,
           pricePerTicket: parseFloat(pricePerTicket) || 0
         },
-        workerCosts: {
-          totalWorkers: parseFloat(totalWorkers) || 0,
-          costPerWorker: parseFloat(costPerWorker) || 0
-        },
         estimatedExpenses
       };
 
-      await api.post('/events', eventData);
-      toast.success('Event created successfully!');
-      navigate('/events');
+      const res = await api.post('/events', eventData);
+      const eventId = res.event._id;
+
+      // Create all jobs for the event
+      for (const job of jobs) {
+        await api.post(`/events/${eventId}/jobs`, {
+          ...job,
+          roles: job.requiredSkills
+        });
+      }
+
+      toast.success('Event and jobs created successfully!');
+      navigate(`/events/${eventId}`);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to create event');
     } finally {
@@ -215,16 +264,16 @@ export default function EventCreate() {
                     className="btn-primary"
                     disabled={!title || !description || !dateStart || !dateEnd || !location}
                   >
-                    Next: Tickets & Workers
+                    Next: Tickets & Jobs
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Step 2: Tickets & Workers */}
+            {/* Step 2: Tickets & Jobs */}
             {step === 2 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold mb-4">Tickets & Workers</h2>
+                <h2 className="text-xl font-semibold mb-4">Tickets & Job Positions</h2>
 
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -263,56 +312,121 @@ export default function EventCreate() {
                 </div>
 
                 <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <FiUsers /> Worker Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start justify-between mb-3">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Number of Workers</label>
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <FiUsers /> Add Job Positions
+                      </h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Add multiple jobs (e.g., 24 Hand Workers, 3 Event Managers, 5 Security Staff)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <input
-                        type="number"
-                        value={totalWorkers}
-                        onChange={(e) => setTotalWorkers(e.target.value)}
+                        type="text"
+                        value={newJob.title}
+                        onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
                         className="input-field"
-                        placeholder="e.g., 20"
-                        min="0"
+                        placeholder="Job Title (e.g., Hand Worker)"
+                      />
+                      <input
+                        type="text"
+                        value={newJob.description}
+                        onChange={(e) => setNewJob({ ...newJob, description: e.target.value })}
+                        className="input-field"
+                        placeholder="Description"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Cost per Worker ($)</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <input
                         type="number"
-                        value={costPerWorker}
-                        onChange={(e) => setCostPerWorker(e.target.value)}
+                        value={newJob.payPerPerson}
+                        onChange={(e) => setNewJob({ ...newJob, payPerPerson: e.target.value })}
                         className="input-field"
-                        placeholder="e.g., 150"
+                        placeholder="Pay per person ($)"
                         min="0"
                         step="0.01"
                       />
+                      <input
+                        type="number"
+                        value={newJob.totalPositions}
+                        onChange={(e) => setNewJob({ ...newJob, totalPositions: e.target.value })}
+                        className="input-field"
+                        placeholder="Number of positions"
+                        min="1"
+                      />
                     </div>
-                  </div>
-                  <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded">
-                    <p className="text-sm font-medium">
-                      Total Worker Cost: <span className="text-red-600 dark:text-red-400 text-lg">${workerCost.toFixed(2)}</span>
-                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newJob.skillInput}
+                        onChange={(e) => setNewJob({ ...newJob, skillInput: e.target.value })}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                        className="input-field flex-1"
+                        placeholder="Add required skill and press Enter"
+                      />
+                      <button type="button" onClick={addSkill} className="btn-secondary px-4">Add Skill</button>
+                    </div>
+                    {newJob.requiredSkills.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {newJob.requiredSkills.map((skill, idx) => (
+                          <span key={idx} className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm flex items-center gap-2">
+                            {skill}
+                            <button type="button" onClick={() => removeSkill(skill)} className="hover:text-red-600">
+                              <FiX size={16} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <button type="button" onClick={addJob} className="btn-primary w-full">
+                      <FiPlus className="inline mr-2" /> Add Job
+                    </button>
                   </div>
                 </div>
 
+                {jobs.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold flex items-center justify-between">
+                      <span>Jobs Added ({jobs.length})</span>
+                      <span className="text-sm text-gray-500 font-normal">Total Positions: {jobs.reduce((sum, j) => sum + j.totalPositions, 0)}</span>
+                    </h3>
+                    {jobs.map((job, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border-l-4 border-purple-500">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded text-xs font-bold">#{index + 1}</span>
+                            <p className="font-medium">{job.title}</p>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {job.totalPositions} positions @ ${job.payPerPerson}/person
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            Skills: {job.requiredSkills.join(', ')}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-red-600 dark:text-red-400">${(job.payPerPerson * job.totalPositions).toFixed(2)}</span>
+                          <button type="button" onClick={() => removeJob(index)} className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
+                            <FiX size={20} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Total Worker Cost:</span>
+                        <span className="text-red-600 dark:text-red-400 text-lg font-bold">${workerCost.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="btn-secondary"
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStep(3)}
-                    className="btn-primary"
-                  >
-                    Next: Expenses
-                  </button>
+                  <button type="button" onClick={() => setStep(1)} className="btn-secondary">Back</button>
+                  <button type="button" onClick={() => setStep(3)} className="btn-primary">Next: Expenses</button>
                 </div>
               </div>
             )}
