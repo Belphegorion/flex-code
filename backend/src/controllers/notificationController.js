@@ -70,6 +70,16 @@ export const deleteNotification = async (req, res) => {
 
 export const createNotification = async (userId, data) => {
   try {
+    if (!userId) {
+      console.error('User ID is required for notification');
+      return null;
+    }
+
+    if (!data.type || !data.title || !data.message) {
+      console.error('Type, title, and message are required for notification');
+      return null;
+    }
+
     const notification = await Notification.create({
       userId,
       ...data

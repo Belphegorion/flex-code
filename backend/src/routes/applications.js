@@ -26,7 +26,8 @@ router.post('/check-in', authenticate, authorize('worker'), [
 ], checkIn);
 
 // Parameterized routes
-router.post('/:id/apply', authenticate, authorize('worker'), [
+router.post('/', authenticate, authorize('worker'), [
+  body('jobId').notEmpty().withMessage('Job ID is required'),
   body('coverLetter').optional().isLength({ max: 1000 }),
   validate
 ], applyToJob);

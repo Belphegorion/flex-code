@@ -27,16 +27,26 @@ export default function PhotoUpload({ currentPhoto, onUploadSuccess }) {
 
     setUploading(true);
     try {
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+      if (!cloudName || !uploadPreset) {
+        throw new Error('Cloudinary configuration missing. Please check your .env file.');
+      }
+
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', 'ml_default');
-      
+      formData.append('upload_preset', uploadPreset);
+
       const cloudinaryRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'demo'}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         { method: 'POST', body: formData }
       );
       
-      if (!cloudinaryRes.ok) throw new Error('Upload failed');
+      if (!cloudinaryRes.ok) {
+        const error = await cloudinaryRes.json();
+        throw new Error(error.error?.message || 'Upload failed');
+      }
       
       const data = await cloudinaryRes.json();
       

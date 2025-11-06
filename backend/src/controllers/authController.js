@@ -69,7 +69,8 @@ export const register = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        profileCompleted: user.profileCompleted || false
       },
       accessToken,
       refreshToken
@@ -162,7 +163,8 @@ export const login = async (req, res) => {
         role: user.role,
         kycStatus: user.kycStatus,
         badges: user.badges,
-        ratingAvg: user.ratingAvg
+        ratingAvg: user.ratingAvg,
+        profileCompleted: user.profileCompleted
       },
       accessToken,
       refreshToken

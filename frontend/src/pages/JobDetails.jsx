@@ -46,7 +46,7 @@ const JobDetails = () => {
 
     setApplying(true);
     try {
-      await api.post(`/applications/${id}/apply`, { coverLetter });
+      await api.post('/applications', { jobId: id, coverLetter });
       toast.success('Application submitted successfully!');
       navigate('/worker');
     } catch (error) {

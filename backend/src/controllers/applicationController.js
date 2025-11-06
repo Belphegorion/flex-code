@@ -6,8 +6,11 @@ import { createNotification } from './notificationController.js';
 
 export const applyToJob = async (req, res) => {
   try {
-    const { coverLetter } = req.body;
-    const jobId = req.params.id;
+    const { jobId, coverLetter } = req.body;
+
+    if (!jobId) {
+      return res.status(400).json({ message: 'Job ID is required' });
+    }
 
     // Check if job exists and is open
     const job = await Job.findById(jobId);
@@ -187,6 +190,14 @@ export const declineApplication = async (req, res) => {
 export const checkIn = async (req, res) => {
   try {
     const { jobId, type, location } = req.body;
+
+    if (!jobId || !type) {
+      return res.status(400).json({ message: 'Job ID and type are required' });
+    }
+
+    if (!['check-in', 'check-out'].includes(type)) {
+      return res.status(400).json({ message: 'Invalid check-in type' });
+    }
 
     const application = await Application.findOne({
       jobId,

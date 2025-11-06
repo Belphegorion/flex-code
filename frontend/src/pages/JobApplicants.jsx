@@ -53,15 +53,23 @@ export default function JobApplicants() {
     }
   };
 
-  const startChat = async (workerId) => {
+  const startChat = async (workerId, workerName) => {
+    const groupName = prompt(`Enter group name for ${workerName}:`, `${job?.title} - Team Chat`);
+    
+    if (!groupName || !groupName.trim()) {
+      toast.error('Group name is required');
+      return;
+    }
+
     try {
       const res = await api.post('/groups', {
+        name: groupName.trim(),
         jobId,
         participants: [workerId]
       });
       navigate(`/groups/${res.group._id}`);
     } catch (error) {
-      toast.error('Failed to start chat');
+      toast.error(error.response?.data?.message || 'Failed to start chat');
     }
   };
 
@@ -195,7 +203,7 @@ export default function JobApplicants() {
                     </div>
                   </div>
                   <button
-                    onClick={() => startChat(app.proId._id)}
+                    onClick={() => startChat(app.proId._id, app.proId?.name)}
                     className="btn-primary w-full flex items-center justify-center gap-2"
                   >
                     <FiMessageCircle /> Start Chat

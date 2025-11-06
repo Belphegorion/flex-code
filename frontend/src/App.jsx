@@ -42,7 +42,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             
             <Route path="/profile-setup" element={
-              <ProtectedRoute allowedRoles={['worker', 'organizer', 'sponsor', 'admin']}>
+              <ProtectedRoute allowedRoles={['worker', 'organizer', 'sponsor', 'admin']} requireProfileComplete={false}>
                 <ProfileSetup />
               </ProtectedRoute>
             } />

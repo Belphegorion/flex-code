@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from './LoadingSpinner';
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
+const ProtectedRoute = ({ children, allowedRoles, requireProfileComplete = true }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -19,6 +19,10 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
+  }
+
+  if (requireProfileComplete && !user.profileCompleted) {
+    return <Navigate to="/profile-setup" replace />;
   }
 
   return children;

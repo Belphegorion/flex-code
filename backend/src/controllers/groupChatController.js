@@ -5,6 +5,18 @@ export const createGroup = async (req, res) => {
   try {
     const { name, jobId, participants } = req.body;
 
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Group name is required' });
+    }
+
+    if (!jobId) {
+      return res.status(400).json({ message: 'Job ID is required' });
+    }
+
+    if (!participants || !Array.isArray(participants) || participants.length === 0) {
+      return res.status(400).json({ message: 'At least one participant is required' });
+    }
+
     const job = await Job.findById(jobId);
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
@@ -15,13 +27,13 @@ export const createGroup = async (req, res) => {
     }
 
     const group = await GroupChat.create({
-      name,
+      name: name.trim(),
       jobId,
       participants: [req.userId, ...participants],
       createdBy: req.userId,
       messages: [{
         senderId: req.userId,
-        text: `Welcome to ${name}! This group was created for job: ${job.title}`,
+        text: `Welcome to ${name.trim()}! This group was created for job: ${job.title}`,
         type: 'system'
       }]
     });
@@ -76,6 +88,11 @@ export const getGroup = async (req, res) => {
 export const sendGroupMessage = async (req, res) => {
   try {
     const { text, type = 'text', fileUrl } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ message: 'Message text is required' });
+    }
+
     const group = await GroupChat.findById(req.params.id);
 
     if (!group) {
@@ -114,6 +131,11 @@ export const sendGroupMessage = async (req, res) => {
 export const addMembers = async (req, res) => {
   try {
     const { userIds } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ message: 'User IDs array is required' });
+    }
+
     const group = await GroupChat.findById(req.params.id);
 
     if (!group) {
