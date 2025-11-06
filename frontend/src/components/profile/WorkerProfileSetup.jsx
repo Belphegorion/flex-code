@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { FiMapPin, FiDollarSign, FiClock, FiBriefcase, FiPlus, FiX } from 'react-icons/fi';
 import api from '../../services/api';
 import LocationPicker from '../events/LocationPicker';
+import AadhaarUpload from '../documents/AadhaarUpload';
 
 export default function WorkerProfileSetup({ onComplete }) {
   const [step, setStep] = useState(1);
@@ -66,14 +67,14 @@ export default function WorkerProfileSetup({ onComplete }) {
     <div className="space-y-6">
       {/* Progress Bar */}
       <div className="flex items-center justify-between mb-8">
-        {[1, 2, 3].map((s) => (
+        {[1, 2, 3, 4].map((s) => (
           <div key={s} className="flex items-center flex-1">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
               step >= s ? 'bg-primary-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
             }`}>
               {s}
             </div>
-            {s < 3 && <div className={`flex-1 h-1 mx-2 ${step > s ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'}`} />}
+            {s < 4 && <div className={`flex-1 h-1 mx-2 ${step > s ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'}`} />}
           </div>
         ))}
       </div>
@@ -233,6 +234,29 @@ export default function WorkerProfileSetup({ onComplete }) {
 
           <div className="flex gap-4">
             <button onClick={() => setStep(2)} className="btn-secondary flex-1">
+              Back
+            </button>
+            <button onClick={() => setStep(4)} className="btn-primary flex-1">
+              Next: Document Upload
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: Document Upload */}
+      {step === 4 && (
+        <div className="space-y-6">
+          <div className="text-center mb-6">
+            <h3 className="text-lg font-semibold mb-2">Document Verification</h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Upload your Aadhaar card for identity verification
+            </p>
+          </div>
+
+          <AadhaarUpload onUploadComplete={() => {}} />
+
+          <div className="flex gap-4">
+            <button onClick={() => setStep(3)} className="btn-secondary flex-1">
               Back
             </button>
             <button onClick={handleSubmit} disabled={loading} className="btn-primary flex-1">

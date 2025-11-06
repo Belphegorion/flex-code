@@ -577,7 +577,8 @@ export const shareWorkQRInGroup = async (req, res) => {
     const { groupId } = req.params;
 
     const group = await GroupChat.findById(groupId)
-      .populate('eventId', 'title');
+      .populate('eventId', 'title')
+      .populate('participants', 'name');
 
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
@@ -603,8 +604,33 @@ export const shareWorkQRInGroup = async (req, res) => {
 
     await group.save();
 
-    // Emit socket event with QR code
+    // Send notifications to all group members (except organizer)
+    const { createNotification } = await import('./notificationController.js');
     const io = req.app.get('io');
+    const workerParticipants = group.participants.filter(
+      p => p._id.toString() !== req.userId.toString()
+    );
+
+    for (const participant of workerParticipants) {
+      await createNotification(participant._id, {
+        type: 'qr_code',
+        title: 'Work QR Code Shared',
+        message: `Work hours QR code shared in ${group.name}. Tap to view and start tracking.`,
+        relatedId: group.eventId,
+        relatedModel: 'Event',
+        actionUrl: `/work-qr/${group.eventId}`,
+        metadata: { qrToken: workSchedule.qrToken, qrCode: workSchedule.qrCode }
+      });
+
+      io.to(`user_${participant._id}`).emit('notification', {
+        type: 'qr_code',
+        message: `Work QR code shared in ${group.name}`,
+        qrCode: workSchedule.qrCode,
+        actionUrl: `/work-qr/${group.eventId}`
+      });
+    }
+
+    // Emit socket event with QR code to group
     const messageWithQR = {
       ...group.messages[group.messages.length - 1].toObject(),
       qrCode: workSchedule.qrCode
@@ -618,7 +644,8 @@ export const shareWorkQRInGroup = async (req, res) => {
 
     res.json({ 
       message: 'Work QR code shared in group',
-      qrCode: workSchedule.qrCode
+      qrCode: workSchedule.qrCode,
+      workersNotified: workerParticipants.length
     });
   } catch (error) {
     console.error('Error sharing work QR:', error);

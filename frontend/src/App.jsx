@@ -37,6 +37,7 @@ import WorkHours from './pages/WorkHours';
 import SponsorEvents from './pages/SponsorEvents';
 import LeaderboardPage from './pages/Leaderboard';
 import EventWorkersDisplay from './components/badges/EventWorkersDisplay';
+import WorkQR from './pages/WorkQR';
 
 function App() {
   return (
@@ -217,6 +218,12 @@ function App() {
             <Route path="/leaderboard" element={
               <ProtectedRoute allowedRoles={['worker', 'organizer', 'sponsor', 'admin']}>
                 <LeaderboardPage />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/work-qr/:eventId" element={
+              <ProtectedRoute allowedRoles={['worker']}>
+                <WorkQR />
               </ProtectedRoute>
             } />
             

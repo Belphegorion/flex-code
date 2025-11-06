@@ -9,7 +9,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['application', 'acceptance', 'rejection', 'message', 'group', 'call', 'system'],
+    enum: ['application', 'acceptance', 'rejection', 'message', 'group', 'call', 'system', 'qr_code'],
     required: true
   },
   title: {
@@ -25,7 +25,7 @@ const notificationSchema = new mongoose.Schema({
   },
   relatedModel: {
     type: String,
-    enum: ['Job', 'Application', 'Chat', 'GroupChat', 'User']
+    enum: ['Job', 'Application', 'Chat', 'GroupChat', 'User', 'Event']
   },
   actionUrl: {
     type: String

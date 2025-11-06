@@ -80,6 +80,15 @@ const userSchema = new mongoose.Schema({
   profilePhoto: {
     type: String
   },
+  aadhaarDocument: {
+    url: String,
+    uploadedAt: Date,
+    verificationStatus: {
+      type: String,
+      enum: ['pending', 'verified', 'rejected'],
+      default: 'pending'
+    }
+  },
   refreshToken: String
 }, {
   timestamps: true

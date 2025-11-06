@@ -39,10 +39,45 @@ export const createWorkSchedule = async (req, res) => {
       qrExpiry
     });
 
+    // Get all workers for this event and notify them
+    const jobs = await Job.find({ eventId });
+    const workerIds = [];
+    jobs.forEach(job => {
+      job.hiredPros.forEach(workerId => {
+        if (!workerIds.includes(workerId.toString())) {
+          workerIds.push(workerId.toString());
+        }
+      });
+    });
+
+    // Send notifications to all workers
+    const { createNotification } = await import('./notificationController.js');
+    const io = req.app.get('io');
+
+    for (const workerId of workerIds) {
+      await createNotification(workerId, {
+        type: 'qr_code',
+        title: 'New Work Hours QR Code',
+        message: `New QR code generated for ${event.title}. Tap to view and start tracking your work hours.`,
+        relatedId: eventId,
+        relatedModel: 'Event',
+        actionUrl: `/work-qr/${eventId}`,
+        metadata: { qrToken, qrCode }
+      });
+
+      io.to(`user_${workerId}`).emit('notification', {
+        type: 'qr_code',
+        message: `New work QR code for ${event.title}`,
+        qrCode,
+        actionUrl: `/work-qr/${eventId}`
+      });
+    }
+
     res.status(201).json({ 
       message: 'Work schedule created successfully', 
       schedule,
-      qrCode 
+      qrCode,
+      workersNotified: workerIds.length
     });
   } catch (error) {
     res.status(500).json({ message: 'Error creating work schedule', error: error.message });
@@ -244,8 +279,10 @@ export const getWorkQRForWorker = async (req, res) => {
 
     res.json({ 
       qrCode: schedule.qrCode,
+      qrToken: schedule.qrToken,
       event: schedule.eventId,
-      jobs: jobs.map(job => ({ _id: job._id, title: job.title }))
+      jobs: jobs.map(job => ({ _id: job._id, title: job.title })),
+      expiryTime: schedule.qrExpiry
     });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching QR code', error: error.message });

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiBell } from 'react-icons/fi';
+import { FiBell, FiQrCode } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import socketService from '../../services/socket';
@@ -109,7 +109,14 @@ export default function NotificationBell() {
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`w-2 h-2 rounded-full mt-2 ${!notif.read ? 'bg-blue-500' : 'bg-transparent'}`} />
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full mt-2 ${!notif.read ? 'bg-blue-500' : 'bg-transparent'}`} />
+                        {notif.type === 'qr_code' && (
+                          <div className="text-primary-600 dark:text-primary-400 mt-1">
+                            <FiQrCode size={16} />
+                          </div>
+                        )}
+                      </div>
                       <div className="flex-1">
                         <p className="font-medium text-sm">{notif.title}</p>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{notif.message}</p>

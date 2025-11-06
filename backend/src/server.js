@@ -28,6 +28,7 @@ import groupRoutes from './routes/groups.js';
 import sponsorRoutes from './routes/sponsors.js';
 import workScheduleRoutes from './routes/workSchedule.js';
 import badgeRoutes from './routes/badges.js';
+import documentRoutes from './routes/documents.js';
 
 dotenv.config();
 
@@ -193,6 +194,7 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/sponsors', sponsorRoutes);
 app.use('/api/work-schedule', workScheduleRoutes);
 app.use('/api/badges', badgeRoutes);
+app.use('/api/documents', documentRoutes);
 
 // 404 handler
 app.use((req, res) => {

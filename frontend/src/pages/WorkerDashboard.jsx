@@ -5,7 +5,8 @@ import JobCard from '../components/common/JobCard';
 import AdvancedSearch from '../components/search/AdvancedSearch';
 import ProfileCompleteness from '../components/profile/ProfileCompleteness';
 import WorkerBadgeCard from '../components/badges/WorkerBadgeCard';
-import { FiBriefcase, FiDollarSign, FiMapPin } from 'react-icons/fi';
+import AadhaarUpload from '../components/documents/AadhaarUpload';
+import { FiBriefcase, FiDollarSign, FiMapPin, FiFileText } from 'react-icons/fi';
 import { jobService } from '../services/jobService';
 import api from '../services/api';
 
@@ -136,6 +137,11 @@ const WorkerDashboard = () => {
               <h2 className="text-2xl font-bold mb-4">Your Dashboard</h2>
               <WorkerBadgeCard />
               {profile && <ProfileCompleteness profile={profile} />}
+              
+              {/* Document Upload Section */}
+              <div className="mt-6">
+                <AadhaarUpload onUploadComplete={() => fetchData()} />
+              </div>
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="card text-center">
                   <FiBriefcase className="mx-auto text-primary-600 dark:text-primary-400 mb-2" size={24} />
