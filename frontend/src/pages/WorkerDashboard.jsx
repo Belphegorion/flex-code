@@ -1,172 +1,188 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { FiClock, FiCheckCircle, FiXCircle, FiCalendar } from 'react-icons/fi';
 import Layout from '../components/common/Layout';
-import JobCard from '../components/common/JobCard';
-import AdvancedSearch from '../components/search/AdvancedSearch';
-import ProfileCompleteness from '../components/profile/ProfileCompleteness';
-import WorkerBadgeCard from '../components/badges/WorkerBadgeCard';
-import AadhaarUpload from '../components/documents/AadhaarUpload';
-import { FiBriefcase, FiDollarSign, FiMapPin, FiFileText } from 'react-icons/fi';
-import { jobService } from '../services/jobService';
+import StartWorkButton from '../components/work/StartWorkButton';
 import api from '../services/api';
 
-const WorkerDashboard = () => {
-  const navigate = useNavigate();
-  const [jobs, setJobs] = useState([]);
-  const [profile, setProfile] = useState(null);
+export default function WorkerDashboard() {
+  const [applications, setApplications] = useState([]);
+  const [acceptedJobs, setAcceptedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filteredJobs, setFilteredJobs] = useState([]);
 
   useEffect(() => {
-    fetchData();
+    fetchApplications();
+    fetchAcceptedJobs();
   }, []);
 
-  const fetchData = async () => {
+  const fetchApplications = async () => {
     try {
-      const [jobsData, profileData] = await Promise.all([
-        jobService.discoverJobs({ maxDistance: 50 }),
-        api.get('/profiles/my-profile')
-      ]);
-      const jobsList = jobsData.jobs || jobsData || [];
-      setJobs(jobsList);
-      setFilteredJobs(jobsList);
-      setProfile(profileData.profile || profileData);
+      const res = await api.get('/applications/my-applications');
+      setApplications(res.applications || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      setJobs([]);
+      toast.error('Failed to load applications');
+    }
+  };
+
+  const fetchAcceptedJobs = async () => {
+    try {
+      const res = await api.get('/jobs/my-jobs');
+      setAcceptedJobs(res.jobs || []);
+    } catch (error) {
+      toast.error('Failed to load accepted jobs');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (filters) => {
-    let filtered = jobs;
-    
-    if (filters.query) {
-      filtered = filtered.filter(job => 
-        job.title?.toLowerCase().includes(filters.query.toLowerCase()) ||
-        job.description?.toLowerCase().includes(filters.query.toLowerCase())
-      );
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'accepted':
+        return <FiCheckCircle className="text-green-500" />;
+      case 'rejected':
+        return <FiXCircle className="text-red-500" />;
+      default:
+        return <FiClock className="text-yellow-500" />;
     }
-    
-    if (filters.location) {
-      filtered = filtered.filter(job => 
-        job.location?.city?.toLowerCase().includes(filters.location.toLowerCase())
-      );
-    }
-    
-    if (filters.payMin) {
-      filtered = filtered.filter(job => job.payPerPerson >= parseFloat(filters.payMin));
-    }
-    
-    if (filters.payMax) {
-      filtered = filtered.filter(job => job.payPerPerson <= parseFloat(filters.payMax));
-    }
-    
-    if (filters.status !== 'all') {
-      filtered = filtered.filter(job => job.status === filters.status);
-    }
-    
-    if (filters.skills.length > 0) {
-      filtered = filtered.filter(job => 
-        filters.skills.some(skill => 
-          job.requiredSkills?.some(jobSkill => 
-            jobSkill.toLowerCase().includes(skill.toLowerCase())
-          )
-        )
-      );
-    }
-    
-    setFilteredJobs(filtered);
   };
-  
-  const handleReset = () => {
-    setFilteredJobs(jobs);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'accepted':
+        return 'bg-green-50 text-green-700 border-green-200';
+      case 'rejected':
+        return 'bg-red-50 text-red-700 border-red-200';
+      default:
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+    }
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600"></div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-3">
-              <h1 className="text-3xl font-bold mb-8">Find Work</h1>
-              <AdvancedSearch
-                onSearch={handleSearch}
-                onReset={handleReset}
-              />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                {loading ? (
-                  <div className="col-span-full text-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600 dark:text-gray-400">Loading jobs...</p>
-                  </div>
-                ) : filteredJobs.length > 0 ? (
-                  filteredJobs.map((job, idx) => (
-                    <motion.div
-                      key={job._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      className="relative"
-                    >
-                      <JobCard job={job} showMatchScore userLocation={profile?.location} />
-                      {job.isAccepted && (
-                        <div className="absolute top-2 right-2">
-                          <button
-                            onClick={() => navigate(`/events/${job.eventId}/work-hours`)}
-                            className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
-                          >
-                            Work Hours
-                          </button>
-                        </div>
-                      )}
-                    </motion.div>
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-12">
-                    <FiBriefcase className="mx-auto text-gray-400 mb-4" size={48} />
-                    <p className="text-gray-500 dark:text-gray-400">No jobs available at the moment</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            <aside className="lg:col-span-1">
-              <h2 className="text-2xl font-bold mb-4">Your Dashboard</h2>
-              <WorkerBadgeCard />
-              {profile && <ProfileCompleteness profile={profile} />}
-              
-              {/* Document Upload Section */}
-              <div className="mt-6">
-                <AadhaarUpload onUploadComplete={() => fetchData()} />
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="card text-center">
-                  <FiBriefcase className="mx-auto text-primary-600 dark:text-primary-400 mb-2" size={24} />
-                  <p className="text-xl font-bold">{jobs.length}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Available Jobs</p>
-                </div>
-                <div className="card text-center">
-                  <FiDollarSign className="mx-auto text-green-600 dark:text-green-400 mb-2" size={24} />
-                  <p className="text-xl font-bold">$0</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Earnings</p>
-                </div>
-                <div className="card text-center col-span-2">
-                  <FiMapPin className="mx-auto text-blue-600 dark:text-blue-400 mb-2" size={24} />
-                  <p className="text-xl font-bold">{profile?.userId?.completedJobsCount || 0}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Jobs Completed</p>
-                </div>
-              </div>
-            </aside>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">My Dashboard</h1>
+          <div className="max-w-xs">
+            <StartWorkButton />
           </div>
-        </motion.div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Accepted Jobs */}
+          <div className="card p-6">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <FiCheckCircle className="text-green-600" />
+              My Active Jobs ({acceptedJobs.length})
+            </h2>
+            
+            {acceptedJobs.length === 0 ? (
+              <div className="text-center py-8">
+                <FiCalendar className="mx-auto text-gray-400 mb-4" size={48} />
+                <p className="text-gray-500">No active jobs yet</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {acceptedJobs.map(job => (
+                  <div key={job._id} className="p-4 border border-green-200 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-medium">{job.title}</h3>
+                      <span className="text-green-600 font-bold">${job.payPerPerson}/hr</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      {job.eventId?.title}
+                    </p>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-1">
+                        <FiCalendar size={14} />
+                        {new Date(job.eventId?.dateStart).toLocaleDateString()}
+                      </span>
+                      <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                        Active
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Job Applications */}
+          <div className="card p-6">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <FiClock className="text-blue-600" />
+              My Applications ({applications.length})
+            </h2>
+            
+            {applications.length === 0 ? (
+              <div className="text-center py-8">
+                <FiClock className="mx-auto text-gray-400 mb-4" size={48} />
+                <p className="text-gray-500 mb-4">No applications yet</p>
+                <button className="btn-primary">Find Work</button>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {applications.map(application => (
+                  <div key={application._id} className="p-4 border rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-medium">{application.jobId?.title}</h3>
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(application.status)}
+                        <span className={`px-2 py-1 rounded-full text-xs border ${getStatusColor(application.status)}`}>
+                          {application.status}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      {application.jobId?.eventId?.title}
+                    </p>
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Applied: {new Date(application.createdAt).toLocaleDateString()}</span>
+                      <span className="font-medium">${application.jobId?.payPerPerson}/hr</span>
+                    </div>
+                    {application.coverLetter && (
+                      <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded text-sm">
+                        <strong>Cover Letter:</strong> {application.coverLetter}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div className="card p-6 text-center">
+            <div className="text-2xl font-bold text-green-600">
+              {applications.filter(app => app.status === 'accepted').length}
+            </div>
+            <div className="text-sm text-gray-600">Accepted Applications</div>
+          </div>
+          <div className="card p-6 text-center">
+            <div className="text-2xl font-bold text-yellow-600">
+              {applications.filter(app => app.status === 'pending').length}
+            </div>
+            <div className="text-sm text-gray-600">Pending Applications</div>
+          </div>
+          <div className="card p-6 text-center">
+            <div className="text-2xl font-bold text-blue-600">
+              {acceptedJobs.length}
+            </div>
+            <div className="text-sm text-gray-600">Active Jobs</div>
+          </div>
+        </div>
       </div>
     </Layout>
   );
-};
-
-export default WorkerDashboard;
+}

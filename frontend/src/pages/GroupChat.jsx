@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiSend, FiUsers, FiArrowLeft, FiUserPlus, FiX, FiSettings, FiUserMinus, FiUserCheck, FiHash, FiClock, FiVideo } from 'react-icons/fi';
+import { FiSend, FiUsers, FiArrowLeft, FiX, FiVideo } from 'react-icons/fi';
 import Layout from '../components/common/Layout';
 import VideoMeetingScheduler from '../components/groups/VideoMeetingScheduler';
 import api from '../services/api';
@@ -240,36 +240,14 @@ export default function GroupChat() {
           </div>
           <div className="flex items-center gap-2">
             {isOrganizer && (
-              <>
-                <button
-                  onClick={() => setShowMeetingScheduler(true)}
-                  className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
-                  title="Schedule Video Meeting"
-                >
-                  <FiVideo size={20} />
-                </button>
-                <button
-                  onClick={shareWorkQR}
-                  className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
-                  title="Share Work QR"
-                >
-                  <FiClock size={20} />
-                </button>
-                <button
-                  onClick={openAddMemberModal}
-                  className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
-                  title="Add Member"
-                >
-                  <FiUserPlus size={20} />
-                </button>
-                <button
-                  onClick={() => setShowGroupSettings(true)}
-                  className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
-                  title="Group Settings"
-                >
-                  <FiSettings size={20} />
-                </button>
-              </>
+              <button
+                onClick={() => setShowMeetingScheduler(true)}
+                className="hover:bg-primary-700 dark:hover:bg-primary-800 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 flex-shrink-0 bg-white/10"
+                title="Start Group Meeting"
+              >
+                <FiVideo size={16} />
+                <span className="text-sm hidden sm:inline">Start Meeting</span>
+              </button>
             )}
             <button
               onClick={() => setShowMembers(!showMembers)}

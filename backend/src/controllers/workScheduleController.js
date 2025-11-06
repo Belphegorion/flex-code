@@ -324,16 +324,15 @@ export const sendWorkQRToWorkers = async (req, res) => {
       });
     }
 
-    // Get all workers for this event
-    const jobs = await Job.find({ eventId });
-    const workerIds = [];
-    jobs.forEach(job => {
-      job.hiredPros.forEach(workerId => {
-        if (!workerIds.includes(workerId.toString())) {
-          workerIds.push(workerId.toString());
-        }
-      });
-    });
+    // Get all workers for this event from applications
+    const Application = (await import('./applicationController.js')).default || (await import('../models/Application.js')).default;
+    
+    const applications = await Application.find({ 
+      eventId: eventId,
+      status: 'accepted'
+    }).distinct('workerId');
+    
+    const workerIds = applications.map(id => id.toString());
 
     // Send notifications to all workers
     const { createNotification } = await import('./notificationController.js');
