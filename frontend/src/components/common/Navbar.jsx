@@ -53,6 +53,11 @@ const Navbar = () => {
                 <FiMessageCircle size={20} />
               </Link>
             )}
+            {user && (
+              <Link to="/leaderboard" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Leaderboard">
+                <span className="text-xl">🏆</span>
+              </Link>
+            )}
             {user ? (
               <>
                 <Link to={getDashboardLink()} className="nav-link">
@@ -128,6 +133,14 @@ const Navbar = () => {
                       Messages
                     </Link>
                   )}
+                  <Link 
+                    to="/leaderboard" 
+                    className="flex items-center py-2 nav-link"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span className="mr-2 text-xl">🏆</span>
+                    Leaderboard
+                  </Link>
                   <Link 
                     to={`/profile/${user.id}`} 
                     className="flex items-center py-2 nav-link"

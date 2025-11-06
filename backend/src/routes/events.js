@@ -17,7 +17,8 @@ import {
   getFinancialSummary,
   addEstimatedExpense,
   deleteEstimatedExpense,
-  getActiveEvents
+  getActiveEvents,
+  getEventWorkers
 } from '../controllers/eventController.js';
 import {
   getEventJobs,
@@ -42,6 +43,7 @@ router.get('/', authenticate, getOrganizerEvents);
 // Parameterized routes
 router.get('/:eventId', authenticate, getEventDetails);
 router.put('/:eventId', authenticate, updateEvent);
+router.get('/:eventId/workers', authenticate, getEventWorkers);
 router.post('/:eventId/ticket', authenticate, upload.single('ticket'), uploadTicketImage);
 router.post('/:eventId/video-call/start', authenticate, startVideoCall);
 router.post('/:eventId/video-call/end', authenticate, endVideoCall);

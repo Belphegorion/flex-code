@@ -5,6 +5,7 @@ import Layout from '../components/common/Layout';
 import StatCard from '../components/common/StatCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { FiDollarSign, FiCalendar, FiUsers, FiTrendingUp, FiEye, FiVideo } from 'react-icons/fi';
+import VideoCallModal from '../components/video/VideoCallModal';
 import api from '../services/api';
 
 const SponsorDashboard = () => {
@@ -12,6 +13,8 @@ const SponsorDashboard = () => {
   const [sponsorships, setSponsorships] = useState([]);
   const [stats, setStats] = useState({ totalSponsored: 0, activeEvents: 0, workersSupported: 0, roi: 0 });
   const [loading, setLoading] = useState(true);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -144,7 +147,14 @@ const SponsorDashboard = () => {
                               </p>
                             </div>
                             {sponsorship.eventId?.videoCallActive && (
-                              <button className="text-green-600 hover:text-green-700 p-1" title="Join Video Call">
+                              <button 
+                                onClick={() => {
+                                  setSelectedEventId(sponsorship.eventId._id);
+                                  setShowVideoCall(true);
+                                }}
+                                className="text-green-600 hover:text-green-700 p-1" 
+                                title="Join Video Call"
+                              >
                                 <FiVideo size={16} />
                               </button>
                             )}
@@ -186,7 +196,13 @@ const SponsorDashboard = () => {
                               Chat
                             </Link>
                             {sponsorship.eventId.videoCallActive && (
-                              <button className="btn-primary text-xs px-3 py-1 flex items-center gap-1">
+                              <button 
+                                onClick={() => {
+                                  setSelectedEventId(sponsorship.eventId._id);
+                                  setShowVideoCall(true);
+                                }}
+                                className="btn-primary text-xs px-3 py-1 flex items-center gap-1"
+                              >
                                 <FiVideo size={12} /> Join Call
                               </button>
                             )}
@@ -200,6 +216,16 @@ const SponsorDashboard = () => {
             </>
           )}
         </motion.div>
+        
+        {showVideoCall && selectedEventId && (
+          <VideoCallModal
+            eventId={selectedEventId}
+            onClose={() => {
+              setShowVideoCall(false);
+              setSelectedEventId(null);
+            }}
+          />
+        )}
       </div>
     </Layout>
   );

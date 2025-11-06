@@ -2,6 +2,7 @@ import GroupChat from '../models/GroupChat.js';
 import Job from '../models/Job.js';
 import Event from '../models/Event.js';
 import User from '../models/User.js';
+import WorkSchedule from '../models/WorkSchedule.js';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
 
@@ -568,6 +569,60 @@ export const joinGroupByQR = async (req, res) => {
   } catch (error) {
     console.error('Error joining group by QR:', error);
     res.status(500).json({ message: 'Error joining group', error: error.message });
+  }
+};
+
+export const shareWorkQRInGroup = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    const group = await GroupChat.findById(groupId)
+      .populate('eventId', 'title');
+
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    if (group.createdBy.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: 'Only group owner can share work QR' });
+    }
+
+    // Get work schedule QR for this event
+    const workSchedule = await WorkSchedule.findOne({ eventId: group.eventId });
+    
+    if (!workSchedule?.qrCode) {
+      return res.status(404).json({ message: 'No work schedule QR found for this event' });
+    }
+
+    // Add QR message to group chat
+    group.messages.push({
+      senderId: req.userId,
+      text: `📱 Work Hours QR Code\n\nScan this QR code to track your work hours for ${group.eventId.title}\n\n⏰ Use this for check-in and check-out`,
+      type: 'system'
+    });
+
+    await group.save();
+
+    // Emit socket event with QR code
+    const io = req.app.get('io');
+    const messageWithQR = {
+      ...group.messages[group.messages.length - 1].toObject(),
+      qrCode: workSchedule.qrCode
+    };
+    
+    io.to(`group_${group._id}`).emit('group-message', {
+      groupId: group._id,
+      message: messageWithQR,
+      qrCode: workSchedule.qrCode
+    });
+
+    res.json({ 
+      message: 'Work QR code shared in group',
+      qrCode: workSchedule.qrCode
+    });
+  } catch (error) {
+    console.error('Error sharing work QR:', error);
+    res.status(500).json({ message: 'Error sharing QR code', error: error.message });
   }
 };
 

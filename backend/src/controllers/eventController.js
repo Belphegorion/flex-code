@@ -1,157 +1,111 @@
 import Event from '../models/Event.js';
-import cloudinary from '../config/cloudinary.js';
-import QRCode from 'qrcode';
+import Job from '../models/Job.js';
+import WorkSession from '../models/WorkSession.js';
+import { calculateBadge } from '../utils/badgeSystem.js';
 
 export const createEvent = async (req, res) => {
   try {
-    const { 
-      title, 
-      description, 
-      location, 
-      dateStart, 
-      dateEnd, 
-      workers,
-      tickets,
-      workerCosts,
-      estimatedExpenses
-    } = req.body;
-
-    // Validation
-    if (!title || !title.trim()) {
-      return res.status(400).json({ message: 'Event title is required' });
-    }
-
-    if (!description || !description.trim()) {
-      return res.status(400).json({ message: 'Event description is required' });
-    }
-
-    if (!dateStart || !dateEnd) {
-      return res.status(400).json({ message: 'Start and end dates are required' });
-    }
-
-    const start = new Date(dateStart);
-    const end = new Date(dateEnd);
-
-    if (start >= end) {
-      return res.status(400).json({ message: 'End date must be after start date' });
-    }
-
-    if (start < new Date()) {
-      return res.status(400).json({ message: 'Start date cannot be in the past' });
-    }
-
-    if (!location || !location.address) {
-      return res.status(400).json({ message: 'Event location is required' });
-    }
-
-    if (req.user.role !== 'organizer') {
-      return res.status(403).json({ message: 'Only organizers can create events' });
-    }
-
-    const ticketRevenue = (tickets?.totalDispersed || 0) * (tickets?.pricePerTicket || 0);
-    const totalEstimatedExpenses = (estimatedExpenses || []).reduce((sum, e) => sum + (e.estimatedAmount || 0), 0);
-    const estimatedProfit = ticketRevenue - totalEstimatedExpenses;
-
     const event = await Event.create({
-      title: title.trim(),
-      description: description.trim(),
-      organizerId: req.userId,
-      location,
-      dateStart: start,
-      dateEnd: end,
-      tickets: tickets || { totalDispersed: 0, totalSold: 0, pricePerTicket: 0 },
-      estimatedExpenses: estimatedExpenses || [],
-      revenue: 0,
-      estimatedProfit
+      ...req.body,
+      organizerId: req.userId
     });
-
-    res.status(201).json({ 
-      message: 'Event created successfully', 
-      event,
-      calculations: {
-        ticketRevenue,
-        totalEstimatedExpenses,
-        estimatedProfit
-      }
-    });
+    res.status(201).json({ event });
   } catch (error) {
-    console.error('Create event error:', error);
-    
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ 
-        message: 'Validation error', 
-        errors: Object.values(error.errors).map(e => e.message) 
-      });
-    }
-    
     res.status(500).json({ message: 'Error creating event', error: error.message });
+  }
+};
+
+export const getOrganizerEvents = async (req, res) => {
+  try {
+    const events = await Event.find({ organizerId: req.userId })
+      .sort({ createdAt: -1 });
+    res.json({ events });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching events', error: error.message });
+  }
+};
+
+export const getEventDetails = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.eventId);
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+    res.json({ event });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching event', error: error.message });
+  }
+};
+
+export const updateEvent = async (req, res) => {
+  try {
+    const event = await Event.findOneAndUpdate(
+      { _id: req.params.eventId, organizerId: req.userId },
+      req.body,
+      { new: true }
+    );
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found or unauthorized' });
+    }
+    res.json({ event });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating event', error: error.message });
+  }
+};
+
+export const getActiveEvents = async (req, res) => {
+  try {
+    const events = await Event.find({
+      dateStart: { $lte: new Date() },
+      dateEnd: { $gte: new Date() }
+    }).sort({ dateStart: 1 });
+    res.json({ events });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching active events', error: error.message });
   }
 };
 
 export const uploadTicketImage = async (req, res) => {
   try {
     const { eventId } = req.params;
+    
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
 
     const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
     if (!event) {
       return res.status(404).json({ message: 'Event not found or unauthorized' });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
-
-    // Delete old image if exists
-    if (event.ticketImage?.publicId) {
-      await cloudinary.uploader.destroy(event.ticketImage.publicId);
-    }
-
-    // Upload to cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'event-tickets',
-      resource_type: 'image'
-    });
-
+    // In a real implementation, upload to cloudinary
     event.ticketImage = {
-      url: result.secure_url,
-      publicId: result.public_id
+      url: `/uploads/${req.file.filename}`,
+      publicId: req.file.filename
     };
+    
     await event.save();
-
-    res.json({ message: 'Ticket image uploaded', ticketImage: event.ticketImage });
+    
+    res.json({ message: 'Ticket image uploaded', event });
   } catch (error) {
-    res.status(500).json({ message: 'Error uploading ticket', error: error.message });
+    res.status(500).json({ message: 'Error uploading ticket image', error: error.message });
   }
 };
 
 export const startVideoCall = async (req, res) => {
   try {
     const { eventId } = req.params;
-
+    
     const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
     if (!event) {
       return res.status(404).json({ message: 'Event not found or unauthorized' });
     }
 
-    const videoCallId = `call_${eventId}_${Date.now()}`;
-    const qrData = JSON.stringify({
-      eventId: event._id,
-      videoCallId,
-      type: 'video-call-access'
-    });
-
-    const qrCode = await QRCode.toDataURL(qrData);
-
     event.videoCallActive = true;
-    event.videoCallId = videoCallId;
-    event.qrCode = qrCode;
+    event.videoCallId = `call_${eventId}_${Date.now()}`;
     await event.save();
-
-    // Notify via socket
-    const io = req.app.get('io');
-    io.to(`event_${eventId}`).emit('video-call-started', { videoCallId, qrCode });
-
-    res.json({ message: 'Video call started', videoCallId, qrCode });
+    
+    res.json({ message: 'Video call started', videoCallId: event.videoCallId });
   } catch (error) {
     res.status(500).json({ message: 'Error starting video call', error: error.message });
   }
@@ -160,7 +114,7 @@ export const startVideoCall = async (req, res) => {
 export const endVideoCall = async (req, res) => {
   try {
     const { eventId } = req.params;
-
+    
     const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
     if (!event) {
       return res.status(404).json({ message: 'Event not found or unauthorized' });
@@ -168,12 +122,8 @@ export const endVideoCall = async (req, res) => {
 
     event.videoCallActive = false;
     event.videoCallId = null;
-    event.qrCode = null;
     await event.save();
-
-    const io = req.app.get('io');
-    io.to(`event_${eventId}`).emit('video-call-ended');
-
+    
     res.json({ message: 'Video call ended' });
   } catch (error) {
     res.status(500).json({ message: 'Error ending video call', error: error.message });
@@ -183,83 +133,16 @@ export const endVideoCall = async (req, res) => {
 export const verifyQRAccess = async (req, res) => {
   try {
     const { qrData } = req.body;
-    const data = JSON.parse(qrData);
-
-    const event = await Event.findById(data.eventId);
+    
+    // Parse QR data and verify access
+    const event = await Event.findById(qrData);
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({ message: 'Invalid QR code' });
     }
-
-    if (!event.videoCallActive || event.videoCallId !== data.videoCallId) {
-      return res.status(403).json({ message: 'Video call not active or invalid QR' });
-    }
-
-    const isOrganizer = event.organizerId.toString() === req.userId.toString();
-
-    if (!isOrganizer) {
-      return res.status(403).json({ message: 'Not authorized to join this call' });
-    }
-
-    res.json({ 
-      message: 'Access granted', 
-      videoCallId: event.videoCallId,
-      eventTitle: event.title 
-    });
+    
+    res.json({ message: 'Access verified', event });
   } catch (error) {
-    res.status(500).json({ message: 'Error verifying access', error: error.message });
-  }
-};
-
-export const getOrganizerEvents = async (req, res) => {
-  try {
-    const events = await Event.find({ organizerId: req.userId })
-      .sort({ dateStart: -1 });
-
-    res.json({ events });
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching events', error: error.message });
-  }
-};
-
-export const getEventDetails = async (req, res) => {
-  try {
-    const { eventId } = req.params;
-
-    const event = await Event.findById(eventId)
-      .populate('organizerId', 'name email');
-
-    if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
-    }
-
-    const isOrganizer = event.organizerId._id.toString() === req.userId.toString();
-
-    if (!isOrganizer) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-
-    res.json({ event });
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching event', error: error.message });
-  }
-};
-
-export const updateEvent = async (req, res) => {
-  try {
-    const { eventId } = req.params;
-    const updates = req.body;
-
-    const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
-    if (!event) {
-      return res.status(404).json({ message: 'Event not found or unauthorized' });
-    }
-
-    Object.assign(event, updates);
-    await event.save();
-
-    res.json({ message: 'Event updated', event });
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating event', error: error.message });
+    res.status(500).json({ message: 'Error verifying QR access', error: error.message });
   }
 };
 
@@ -267,7 +150,7 @@ export const updateTickets = async (req, res) => {
   try {
     const { eventId } = req.params;
     const { totalDispersed, totalSold, pricePerTicket } = req.body;
-
+    
     const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
     if (!event) {
       return res.status(404).json({ message: 'Event not found or unauthorized' });
@@ -276,7 +159,7 @@ export const updateTickets = async (req, res) => {
     event.tickets = { totalDispersed, totalSold, pricePerTicket };
     event.revenue = totalSold * pricePerTicket;
     await event.save();
-
+    
     res.json({ message: 'Tickets updated', event });
   } catch (error) {
     res.status(500).json({ message: 'Error updating tickets', error: error.message });
@@ -287,15 +170,15 @@ export const addExpense = async (req, res) => {
   try {
     const { eventId } = req.params;
     const { category, description, amount } = req.body;
-
+    
     const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
     if (!event) {
       return res.status(404).json({ message: 'Event not found or unauthorized' });
     }
 
-    event.expenses.push({ category, description, amount });
+    event.expenses.push({ category, description, amount, date: new Date() });
     await event.save();
-
+    
     res.json({ message: 'Expense added', event });
   } catch (error) {
     res.status(500).json({ message: 'Error adding expense', error: error.message });
@@ -305,15 +188,15 @@ export const addExpense = async (req, res) => {
 export const deleteExpense = async (req, res) => {
   try {
     const { eventId, expenseId } = req.params;
-
+    
     const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
     if (!event) {
       return res.status(404).json({ message: 'Event not found or unauthorized' });
     }
 
-    event.expenses = event.expenses.filter(e => e._id.toString() !== expenseId);
+    event.expenses.id(expenseId).remove();
     await event.save();
-
+    
     res.json({ message: 'Expense deleted', event });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting expense', error: error.message });
@@ -323,21 +206,21 @@ export const deleteExpense = async (req, res) => {
 export const getFinancials = async (req, res) => {
   try {
     const { eventId } = req.params;
-
+    
     const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
     if (!event) {
       return res.status(404).json({ message: 'Event not found or unauthorized' });
     }
 
-    const totalExpenses = event.expenses.reduce((sum, e) => sum + e.amount, 0);
-    const netProfit = event.revenue - totalExpenses;
-
-    res.json({
+    const totalExpenses = event.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const profit = event.revenue - totalExpenses;
+    
+    res.json({ 
       revenue: event.revenue,
+      expenses: event.expenses,
       totalExpenses,
-      netProfit,
-      tickets: event.tickets,
-      expenses: event.expenses
+      profit,
+      tickets: event.tickets
     });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching financials', error: error.message });
@@ -347,21 +230,18 @@ export const getFinancials = async (req, res) => {
 export const getFinancialSummary = async (req, res) => {
   try {
     const events = await Event.find({ organizerId: req.userId });
-
+    
     const summary = events.reduce((acc, event) => {
-      const totalExpenses = event.expenses.reduce((sum, e) => sum + e.amount, 0);
-      const netProfit = event.revenue - totalExpenses;
-      
-      return {
-        totalRevenue: acc.totalRevenue + event.revenue,
-        totalExpenses: acc.totalExpenses + totalExpenses,
-        totalProfit: acc.totalProfit + netProfit
-      };
+      const totalExpenses = event.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+      acc.totalRevenue += event.revenue || 0;
+      acc.totalExpenses += totalExpenses;
+      acc.totalProfit += (event.revenue || 0) - totalExpenses;
+      return acc;
     }, { totalRevenue: 0, totalExpenses: 0, totalProfit: 0 });
-
+    
     res.json(summary);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching summary', error: error.message });
+    res.status(500).json({ message: 'Error fetching financial summary', error: error.message });
   }
 };
 
@@ -369,19 +249,15 @@ export const addEstimatedExpense = async (req, res) => {
   try {
     const { eventId } = req.params;
     const { category, description, estimatedAmount } = req.body;
-
+    
     const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
     if (!event) {
       return res.status(404).json({ message: 'Event not found or unauthorized' });
     }
 
     event.estimatedExpenses.push({ category, description, estimatedAmount });
-    
-    const totalEstimatedExpenses = event.estimatedExpenses.reduce((sum, e) => sum + e.estimatedAmount, 0);
-    event.estimatedProfit = (event.tickets.totalDispersed * event.tickets.pricePerTicket) - totalEstimatedExpenses;
-    
     await event.save();
-
+    
     res.json({ message: 'Estimated expense added', event });
   } catch (error) {
     res.status(500).json({ message: 'Error adding estimated expense', error: error.message });
@@ -391,80 +267,70 @@ export const addEstimatedExpense = async (req, res) => {
 export const deleteEstimatedExpense = async (req, res) => {
   try {
     const { eventId, expenseId } = req.params;
-
+    
     const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
     if (!event) {
       return res.status(404).json({ message: 'Event not found or unauthorized' });
     }
 
-    event.estimatedExpenses = event.estimatedExpenses.filter(e => e._id.toString() !== expenseId);
-    
-    const totalEstimatedExpenses = event.estimatedExpenses.reduce((sum, e) => sum + e.estimatedAmount, 0);
-    event.estimatedProfit = (event.tickets.totalDispersed * event.tickets.pricePerTicket) - totalEstimatedExpenses;
-    
+    event.estimatedExpenses.id(expenseId).remove();
     await event.save();
-
+    
     res.json({ message: 'Estimated expense deleted', event });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting estimated expense', error: error.message });
   }
 };
 
-export const updateWorkerCosts = async (req, res) => {
+export const getEventWorkers = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { totalWorkers, costPerWorker } = req.body;
 
-    const event = await Event.findOne({ _id: eventId, organizerId: req.userId });
-    if (!event) {
-      return res.status(404).json({ message: 'Event not found or unauthorized' });
-    }
+    // Get all jobs for this event
+    const jobs = await Job.find({ eventId })
+      .populate('hiredPros', 'name email profilePhoto');
 
-    event.workerCosts = {
-      totalWorkers,
-      costPerWorker,
-      totalWorkerCost: totalWorkers * costPerWorker
-    };
+    // Get all unique workers
+    const allWorkers = [];
+    const workerIds = new Set();
     
-    const totalEstimatedExpenses = event.estimatedExpenses.reduce((sum, e) => sum + e.estimatedAmount, 0);
-    const totalCost = totalEstimatedExpenses + event.workerCosts.totalWorkerCost;
-    event.estimatedProfit = (event.tickets.totalDispersed * event.tickets.pricePerTicket) - totalCost;
-    
-    await event.save();
-
-    res.json({ message: 'Worker costs updated', event });
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating worker costs', error: error.message });
-  }
-};
-
-export const getActiveEvents = async (req, res) => {
-  try {
-    const now = new Date();
-    const events = await Event.find({
-      organizerId: req.userId,
-      dateStart: { $lte: now },
-      dateEnd: { $gte: now },
-      status: { $in: ['upcoming', 'ongoing'] }
-    }).sort({ dateStart: -1 });
-
-    const eventsWithCalculations = events.map(event => {
-      const actualExpenses = event.expenses.reduce((sum, e) => sum + e.amount, 0);
-      const totalExpenses = actualExpenses;
-      const netProfit = event.revenue - totalExpenses;
-
-      return {
-        ...event.toObject(),
-        calculatedFinancials: {
-          actualExpenses,
-          totalExpenses,
-          netProfit
+    jobs.forEach(job => {
+      job.hiredPros.forEach(worker => {
+        if (!workerIds.has(worker._id.toString())) {
+          workerIds.add(worker._id.toString());
+          allWorkers.push({
+            ...worker.toObject(),
+            jobTitle: job.title
+          });
         }
+      });
+    });
+
+    // Calculate badges for all workers
+    const workerSessions = await WorkSession.find({ 
+      workerId: { $in: Array.from(workerIds) }, 
+      status: 'checked-out' 
+    });
+    
+    const workersWithBadges = allWorkers.map(worker => {
+      const sessions = workerSessions.filter(s => s.workerId.toString() === worker._id.toString());
+      const totalHours = sessions.reduce((sum, session) => sum + session.totalHours, 0);
+      const eventIds = [...new Set(sessions.map(session => session.eventId.toString()))];
+      const badge = calculateBadge(totalHours, eventIds.length);
+      
+      return {
+        ...worker,
+        badge,
+        totalHours: Math.round(totalHours * 100) / 100,
+        totalEvents: eventIds.length
       };
     });
 
-    res.json({ events: eventsWithCalculations });
+    res.json({ 
+      workers: workersWithBadges,
+      totalWorkers: workersWithBadges.length
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching active events', error: error.message });
+    res.status(500).json({ message: 'Error fetching event workers', error: error.message });
   }
 };

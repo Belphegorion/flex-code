@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiCalendar, FiMapPin, FiUsers, FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiCalendar, FiMapPin, FiUsers, FiPlus, FiEdit2, FiTrash2, FiClock } from 'react-icons/fi';
 import Layout from '../components/common/Layout';
 import api from '../services/api';
 import { toast } from 'react-toastify';
@@ -71,12 +71,20 @@ export default function EventDetails() {
             </h1>
             <p className="text-gray-600 dark:text-gray-300">{event?.description}</p>
           </div>
-          <button
-            onClick={() => navigate(`/events/${eventId}/edit`)}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center gap-2"
-          >
-            <FiEdit2 /> Edit Event
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate(`/events/${eventId}/work-hours`)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <FiClock /> Work Hours
+            </button>
+            <button
+              onClick={() => navigate(`/events/${eventId}/edit`)}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center gap-2"
+            >
+              <FiEdit2 /> Edit Event
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">

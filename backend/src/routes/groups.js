@@ -11,6 +11,7 @@ import {
   transferOwnership,
   scheduleGroupSession,
   joinGroupByQR,
+  shareWorkQRInGroup,
   getGroupQR
 } from '../controllers/groupChatController.js';
 import { authenticate } from '../middleware/auth.js';
@@ -56,6 +57,7 @@ router.post('/join-qr', authenticate, [
   validate
 ], joinGroupByQR);
 
+router.post('/:groupId/share-work-qr', authenticate, shareWorkQRInGroup);
 router.get('/:id/qr', authenticate, getGroupQR);
 
 export default router;

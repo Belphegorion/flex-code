@@ -4,7 +4,7 @@ import { FiX, FiCamera } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import api from '../../services/api';
 
-export default function QRScanner({ onClose, onSuccess }) {
+export default function QRScanner({ onClose, onSuccess, title = 'Join Group Chat', onScanSuccess: customOnScanSuccess }) {
   const [scanning, setScanning] = useState(false);
   const scannerRef = useRef(null);
   const [scanner, setScanner] = useState(null);
@@ -39,6 +39,11 @@ export default function QRScanner({ onClose, onSuccess }) {
         scanner.clear();
       }
 
+      if (customOnScanSuccess) {
+        customOnScanSuccess(decodedText);
+        return;
+      }
+
       const response = await api.post('/groups/join-qr', {
         qrData: decodedText
       });
@@ -64,7 +69,7 @@ export default function QRScanner({ onClose, onSuccess }) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Join Group Chat</h3>
+          <h3 className="text-lg font-semibold">{title}</h3>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"

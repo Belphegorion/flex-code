@@ -3,6 +3,7 @@ import Sponsor from '../models/Sponsor.js';
 import User from '../models/User.js';
 import GroupChat from '../models/GroupChat.js';
 import { createNotification } from './notificationController.js';
+import WorkSchedule from '../models/WorkSchedule.js';
 
 export const getAvailableEvents = async (req, res) => {
   try {
@@ -96,6 +97,17 @@ export const sponsorEvent = async (req, res) => {
       type: 'sponsorship',
       message: `New sponsorship offer for ${event.title}`
     });
+
+    // Share work QR code in the chat if available
+    const workSchedule = await WorkSchedule.findOne({ eventId });
+    if (workSchedule?.qrCode) {
+      privateChat.messages.push({
+        senderId: req.userId,
+        text: 'Work Hours QR Code for tracking your work time:',
+        type: 'system'
+      });
+      await privateChat.save();
+    }
 
     res.json({ 
       message: 'Sponsorship offer sent successfully',

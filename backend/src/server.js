@@ -21,10 +21,13 @@ import reviewRoutes from './routes/reviews.js';
 import adminRoutes from './routes/admin.js';
 import chatRoutes from './routes/chat.js';
 import eventRoutes from './routes/events.js';
+import eventWorkerRoutes from './routes/eventWorkers.js';
 import profileSetupRoutes from './routes/profileSetup.js';
 import notificationRoutes from './routes/notifications.js';
 import groupRoutes from './routes/groups.js';
 import sponsorRoutes from './routes/sponsors.js';
+import workScheduleRoutes from './routes/workSchedule.js';
+import badgeRoutes from './routes/badges.js';
 
 dotenv.config();
 
@@ -183,10 +186,13 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/event-workers', eventWorkerRoutes);
 app.use('/api/profile-setup', profileSetupRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/sponsors', sponsorRoutes);
+app.use('/api/work-schedule', workScheduleRoutes);
+app.use('/api/badges', badgeRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Profile from '../models/Profile.js';
+import WorkSession from '../models/WorkSession.js';
+import { calculateBadge } from '../utils/badgeSystem.js';
 
 export const register = async (req, res) => {
   // Basic input validation to return clearer 4xx errors instead of a generic 500
@@ -155,6 +157,12 @@ export const login = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
+    // Get user badge
+    const sessions = await WorkSession.find({ workerId: user._id, status: 'checked-out' });
+    const totalHours = sessions.reduce((sum, session) => sum + session.totalHours, 0);
+    const eventIds = [...new Set(sessions.map(session => session.eventId.toString()))];
+    const badge = calculateBadge(totalHours, eventIds.length);
+
     res.json({
       message: 'Login successful',
       user: {
@@ -166,7 +174,8 @@ export const login = async (req, res) => {
         badges: user.badges,
         ratingAvg: user.ratingAvg,
         profileCompleted: user.profileCompleted,
-        profilePhoto: user.profilePhoto
+        profilePhoto: user.profilePhoto,
+        badge
       },
       accessToken,
       refreshToken
@@ -227,6 +236,12 @@ export const getProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Get user badge
+    const sessions = await WorkSession.find({ workerId: user._id, status: 'checked-out' });
+    const totalHours = sessions.reduce((sum, session) => sum + session.totalHours, 0);
+    const eventIds = [...new Set(sessions.map(session => session.eventId.toString()))];
+    const badge = calculateBadge(totalHours, eventIds.length);
+
     res.json({ 
       user: {
         id: user._id,
@@ -237,7 +252,8 @@ export const getProfile = async (req, res) => {
         badges: user.badges,
         ratingAvg: user.ratingAvg,
         profileCompleted: user.profileCompleted,
-        profilePhoto: user.profilePhoto
+        profilePhoto: user.profilePhoto,
+        badge
       }
     });
   } catch (error) {

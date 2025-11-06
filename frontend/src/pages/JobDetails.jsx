@@ -184,7 +184,12 @@ const JobDetails = () => {
                 >
                   View Applicants
                 </button>
-                <button className="btn-secondary">Edit Job</button>
+                <button 
+                  onClick={() => navigate(`/events/${job.eventId}/jobs/${id}/edit`)}
+                  className="btn-secondary"
+                >
+                  Edit Job
+                </button>
               </div>
             </div>
           )}

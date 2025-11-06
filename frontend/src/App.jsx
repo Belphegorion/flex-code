@@ -30,8 +30,13 @@ import EventsHero from './pages/EventsHero';
 import CostEstimator from './pages/CostEstimator';
 import ProfileSetup from './pages/ProfileSetup';
 import EventDetails from './pages/EventDetails';
+import EventEdit from './pages/EventEdit';
 import EventJobCreate from './pages/EventJobCreate';
+import JobEdit from './pages/JobEdit';
+import WorkHours from './pages/WorkHours';
 import SponsorEvents from './pages/SponsorEvents';
+import LeaderboardPage from './pages/Leaderboard';
+import EventWorkersDisplay from './components/badges/EventWorkersDisplay';
 
 function App() {
   return (
@@ -149,6 +154,24 @@ function App() {
               </ProtectedRoute>
             } />
             
+            <Route path="/events/:eventId/edit" element={
+              <ProtectedRoute allowedRoles={['organizer']}>
+                <EventEdit />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/events/:eventId/jobs/:jobId/edit" element={
+              <ProtectedRoute allowedRoles={['organizer']}>
+                <JobEdit />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/events/:eventId/work-hours" element={
+              <ProtectedRoute allowedRoles={['organizer', 'worker']}>
+                <WorkHours />
+              </ProtectedRoute>
+            } />
+            
             <Route path="/events/:eventId/jobs/create" element={
               <ProtectedRoute allowedRoles={['organizer']}>
                 <EventJobCreate />
@@ -182,6 +205,18 @@ function App() {
             <Route path="/sponsor/events/:eventId" element={
               <ProtectedRoute allowedRoles={['sponsor']}>
                 <SponsorEvents />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/event-workers/:eventId" element={
+              <ProtectedRoute allowedRoles={['organizer', 'sponsor']}>
+                <EventWorkersDisplay />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/leaderboard" element={
+              <ProtectedRoute allowedRoles={['worker', 'organizer', 'sponsor', 'admin']}>
+                <LeaderboardPage />
               </ProtectedRoute>
             } />
             

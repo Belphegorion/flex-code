@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiSend, FiUsers, FiArrowLeft, FiUserPlus, FiX, FiSettings, FiUserMinus, FiUserCheck, FiQrCode } from 'react-icons/fi';
+import { FiSend, FiUsers, FiArrowLeft, FiUserPlus, FiX, FiSettings, FiUserMinus, FiUserCheck, FiHash, FiClock } from 'react-icons/fi';
 import Layout from '../components/common/Layout';
 import GroupScheduler from '../components/groups/GroupScheduler';
 import api from '../services/api';
@@ -30,7 +30,19 @@ export default function GroupChat() {
 
     socketService.onGroupMessage((data) => {
       if (data.groupId === groupId) {
-        fetchGroup();
+        if (data.qrCode && data.message) {
+          // Handle QR code display in real-time
+          setGroup(prev => {
+            if (!prev) return prev;
+            const updatedMessages = [...prev.messages];
+            // Add the new message with QR code
+            const messageWithQR = { ...data.message, qrCode: data.qrCode };
+            updatedMessages.push(messageWithQR);
+            return { ...prev, messages: updatedMessages };
+          });
+        } else {
+          fetchGroup();
+        }
       }
     });
 
@@ -167,6 +179,16 @@ export default function GroupChat() {
     setShowAddMember(true);
   };
 
+  const shareWorkQR = async () => {
+    try {
+      await api.post(`/groups/${groupId}/share-work-qr`);
+      toast.success('Work QR code shared in group');
+      fetchGroup();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to share QR code');
+    }
+  };
+
   const isOrganizer = user?.role === 'organizer' && group?.createdBy === user?.id;
 
   const filteredWorkers = workers.filter(worker =>
@@ -224,7 +246,14 @@ export default function GroupChat() {
                   className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
                   title="Schedule Session"
                 >
-                  <FiQrCode size={20} />
+                  <FiHash size={20} />
+                </button>
+                <button
+                  onClick={shareWorkQR}
+                  className="hover:bg-primary-700 dark:hover:bg-primary-800 p-2 rounded-full transition-colors flex items-center gap-2 flex-shrink-0"
+                  title="Share Work QR"
+                >
+                  <FiClock size={20} />
                 </button>
                 <button
                   onClick={openAddMemberModal}
@@ -285,7 +314,41 @@ export default function GroupChat() {
                           {msg.senderId?.name || 'Unknown'}
                         </p>
                       )}
-                      <p className="break-words text-sm leading-relaxed">{msg.text}</p>
+                      <p className="break-words text-sm leading-relaxed whitespace-pre-line">{msg.text}</p>
+                      
+                      {/* Display QR code if message contains work QR */}
+                      {msg.text.includes('Work Hours QR Code') && (
+                        <div className="mt-3 p-3 bg-white dark:bg-gray-700 rounded-lg">
+                          <div className="text-center">
+                            <div className="w-32 h-32 mx-auto mb-2 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center overflow-hidden">
+                              {msg.qrCode ? (
+                                <img 
+                                  src={msg.qrCode} 
+                                  alt="Work Hours QR Code" 
+                                  className="w-full h-full object-contain"
+                                  onClick={() => {
+                                    // Open QR code in modal for better viewing
+                                    const modal = document.createElement('div');
+                                    modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4';
+                                    modal.innerHTML = `
+                                      <div class="bg-white rounded-lg p-6 max-w-sm w-full text-center">
+                                        <img src="${msg.qrCode}" alt="Work Hours QR Code" class="w-full mb-4" />
+                                        <p class="text-sm text-gray-600 mb-4">Scan to track work hours</p>
+                                        <button onclick="this.parentElement.parentElement.remove()" class="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700">Close</button>
+                                      </div>
+                                    `;
+                                    document.body.appendChild(modal);
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-xs text-gray-500">Loading QR...</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Scan to track work hours</p>
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="flex items-center justify-end gap-1 mt-1">
                         <p className={`text-xs ${isOwn ? 'text-white/70' : 'text-gray-500'}`}>
                           {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

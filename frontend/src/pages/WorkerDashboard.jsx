@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '../components/common/Layout';
 import JobCard from '../components/common/JobCard';
-import SearchBar from '../components/common/SearchBar';
+import AdvancedSearch from '../components/search/AdvancedSearch';
 import ProfileCompleteness from '../components/profile/ProfileCompleteness';
+import WorkerBadgeCard from '../components/badges/WorkerBadgeCard';
 import { FiBriefcase, FiDollarSign, FiMapPin } from 'react-icons/fi';
 import { jobService } from '../services/jobService';
 import api from '../services/api';
@@ -11,8 +12,8 @@ import api from '../services/api';
 const WorkerDashboard = () => {
   const [jobs, setJobs] = useState([]);
   const [profile, setProfile] = useState(null);
-  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [filteredJobs, setFilteredJobs] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -24,7 +25,9 @@ const WorkerDashboard = () => {
         jobService.discoverJobs({ maxDistance: 50 }),
         api.get('/profiles/my-profile')
       ]);
-      setJobs(jobsData.jobs || jobsData || []);
+      const jobsList = jobsData.jobs || jobsData || [];
+      setJobs(jobsList);
+      setFilteredJobs(jobsList);
       setProfile(profileData.profile || profileData);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -34,9 +37,50 @@ const WorkerDashboard = () => {
     }
   };
 
-  const filteredJobs = jobs.filter(job =>
-    job.title?.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleSearch = (filters) => {
+    let filtered = jobs;
+    
+    if (filters.query) {
+      filtered = filtered.filter(job => 
+        job.title?.toLowerCase().includes(filters.query.toLowerCase()) ||
+        job.description?.toLowerCase().includes(filters.query.toLowerCase())
+      );
+    }
+    
+    if (filters.location) {
+      filtered = filtered.filter(job => 
+        job.location?.city?.toLowerCase().includes(filters.location.toLowerCase())
+      );
+    }
+    
+    if (filters.payMin) {
+      filtered = filtered.filter(job => job.payPerPerson >= parseFloat(filters.payMin));
+    }
+    
+    if (filters.payMax) {
+      filtered = filtered.filter(job => job.payPerPerson <= parseFloat(filters.payMax));
+    }
+    
+    if (filters.status !== 'all') {
+      filtered = filtered.filter(job => job.status === filters.status);
+    }
+    
+    if (filters.skills.length > 0) {
+      filtered = filtered.filter(job => 
+        filters.skills.some(skill => 
+          job.requiredSkills?.some(jobSkill => 
+            jobSkill.toLowerCase().includes(skill.toLowerCase())
+          )
+        )
+      );
+    }
+    
+    setFilteredJobs(filtered);
+  };
+  
+  const handleReset = () => {
+    setFilteredJobs(jobs);
+  };
 
   return (
     <Layout>
@@ -48,11 +92,9 @@ const WorkerDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div className="lg:col-span-3">
               <h1 className="text-3xl font-bold mb-8">Find Work</h1>
-              <SearchBar
-                value={search}
-                onChange={setSearch}
-                placeholder="Search jobs..."
-                className="mb-6"
+              <AdvancedSearch
+                onSearch={handleSearch}
+                onReset={handleReset}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {loading ? (
@@ -67,8 +109,19 @@ const WorkerDashboard = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.1 }}
+                      className="relative"
                     >
                       <JobCard job={job} showMatchScore userLocation={profile?.location} />
+                      {job.isAccepted && (
+                        <div className="absolute top-2 right-2">
+                          <button
+                            onClick={() => navigate(`/events/${job.eventId}/work-hours`)}
+                            className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                          >
+                            Work Hours
+                          </button>
+                        </div>
+                      )}
                     </motion.div>
                   ))
                 ) : (
@@ -81,6 +134,7 @@ const WorkerDashboard = () => {
             </div>
             <aside className="lg:col-span-1">
               <h2 className="text-2xl font-bold mb-4">Your Dashboard</h2>
+              <WorkerBadgeCard />
               {profile && <ProfileCompleteness profile={profile} />}
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="card text-center">

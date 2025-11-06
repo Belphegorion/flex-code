@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiUsers, FiMessageCircle, FiSearch, FiQrCode } from 'react-icons/fi';
+import { FiUsers, FiMessageCircle, FiSearch, FiHash } from 'react-icons/fi';
 import Layout from '../components/common/Layout';
 import QRScanner from '../components/groups/QRScanner';
 import api from '../services/api';
@@ -76,7 +76,7 @@ export default function Groups() {
                   className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
                   title="Join Group via QR"
                 >
-                  <FiQrCode size={20} />
+                  <FiHash size={20} />
                 </button>
               )}
               {user?.role === 'sponsor' && (
