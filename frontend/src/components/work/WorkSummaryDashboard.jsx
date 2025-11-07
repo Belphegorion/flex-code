@@ -183,3 +183,4 @@ export default function WorkSummaryDashboard({ eventId }) {
     </div>
   );
 }
+

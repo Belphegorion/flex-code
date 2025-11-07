@@ -33,8 +33,8 @@ const LoginForm = () => {
         return;
       }
       
-      // Navigate based on role
-      if (data.user.role === 'worker') navigate('/worker');
+  // Navigate based on role
+  if (data.user.role === 'worker') navigate('/jobs');
       else if (data.user.role === 'organizer') navigate('/organizer');
       else if (data.user.role === 'sponsor') navigate('/sponsor');
       else if (data.user.role === 'admin') navigate('/admin');

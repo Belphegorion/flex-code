@@ -56,10 +56,32 @@ export default function WorkHours() {
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Work Hours - {event?.title}</h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              {isOrganizer ? 'Manage work schedules and track worker hours' : 'Track your work hours and earnings'}
-            </p>
+            {/* Hero inspired by provided design — left content, right visual */}
+            <div className="hero-banner p-6 mb-6">
+              <div className="flex flex-col md:flex-row items-stretch gap-6">
+                <div className="md:w-1/2 flex flex-col justify-center px-6 py-8">
+                  <h1 className="text-3xl md:text-4xl font-bold tracking-wide leading-tight">WORK HOURS</h1>
+                  <h2 className="mt-3 text-sm opacity-90 uppercase">{event?.title}</h2>
+                  <p className="mt-4 text-gray-200 text-sm max-w-xl">
+                    {isOrganizer ? 'Manage work schedules and track worker hours' : 'Track your work hours and earnings'}
+                  </p>
+                  <div className="mt-6">
+                    <button className="hero-cta">Open Work Tools</button>
+                  </div>
+                </div>
+
+                <div className="md:w-1/2 flex items-center justify-center p-6">
+                  {/* visual panel resembling image — keep rounded inner image */}
+                  <div className="bg-gray-900 p-4 rounded-lg shadow-inner">
+                    {event?.bannerUrl ? (
+                      <img src={event.bannerUrl} alt="event" className="w-64 h-40 object-cover rounded-md" />
+                    ) : (
+                      <div className="w-64 h-40 bg-gray-700 rounded-md flex items-center justify-center text-sm text-gray-200">Event Visual</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {isOrganizer && (

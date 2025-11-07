@@ -1,5 +1,5 @@
 # Backend Dockerfile for eventpro-backend
-FROM node:20-alpine AS deps
+FROM node:18-alpine AS deps
 WORKDIR /usr/src/app
 
 # Copy only package manifests first for layer caching
@@ -13,7 +13,7 @@ RUN if [ -f package-lock.json ]; then \
       npm install --omit=dev --no-audit --no-fund; \
     fi
 
-FROM node:20-alpine AS runner
+FROM node:18-alpine AS runner
 WORKDIR /usr/src/app
 
 # Copy node_modules from deps stage

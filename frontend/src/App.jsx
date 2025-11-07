@@ -9,6 +9,8 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+// WorkerDashboard intentionally not imported here — worker landing now uses JobsLanding
+import JobsLanding from './pages/JobsLanding';
 import WorkerDashboard from './pages/WorkerDashboard';
 import OrganizerDashboard from './pages/OrganizerDashboard';
 import SponsorDashboard from './pages/SponsorDashboard';
@@ -98,6 +100,12 @@ function App() {
             <Route path="/jobs/discover" element={
               <ProtectedRoute allowedRoles={['worker']}>
                 <JobDiscover />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/jobs" element={
+              <ProtectedRoute allowedRoles={['worker']}>
+                <JobsLanding />
               </ProtectedRoute>
             } />
             

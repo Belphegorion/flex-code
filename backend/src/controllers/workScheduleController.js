@@ -1,4 +1,5 @@
 import WorkSchedule from '../models/WorkSchedule.js';
+import GroupChat from '../models/GroupChat.js';
 import WorkSession from '../models/WorkSession.js';
 import Event from '../models/Event.js';
 import Job from '../models/Job.js';
@@ -71,6 +72,54 @@ export const createWorkSchedule = async (req, res) => {
         qrCode,
         actionUrl: `/work-qr/${eventId}`
       });
+    }
+
+    // Also post QR into event's group chat (if exists)
+    try {
+  let group = await GroupChat.findOne({ eventId, createdBy: req.userId });
+  if (!group) group = await GroupChat.findOne({ eventId });
+      if (group) {
+        group.messages.push({
+          senderId: req.userId,
+          text: `📱 Work Hours QR Code\n\nScan this QR code to track your work hours for ${event.title}\n\n⏰ Use this for check-in and check-out`,
+          type: 'system'
+        });
+        group.lastMessage = group.messages[group.messages.length - 1].text;
+        group.lastMessageAt = new Date();
+        await group.save();
+
+        const workerParticipants = group.participants.filter(p => p.toString() !== req.userId.toString());
+        for (const participant of workerParticipants) {
+          await createNotification(participant, {
+            type: 'qr_code',
+            title: 'Work QR Code Shared',
+            message: `Work hours QR code for ${event.title} has been posted in the event group. Tap to view and start tracking.`,
+            relatedId: eventId,
+            relatedModel: 'Event',
+            actionUrl: `/work-qr/${eventId}`,
+            metadata: { qrToken, qrCode }
+          });
+
+          io.to(`user_${participant}`).emit('notification', {
+            type: 'qr_code',
+            message: `Work QR code posted in group for ${event.title}`,
+            qrCode,
+            actionUrl: `/work-qr/${eventId}`
+          });
+        }
+
+        const messageWithQR = {
+          ...group.messages[group.messages.length - 1].toObject?.() ?? group.messages[group.messages.length - 1],
+          qrCode
+        };
+        io.to(`group_${group._id}`).emit('group-message', {
+          groupId: group._id,
+          message: messageWithQR,
+          qrCode
+        });
+      }
+    } catch (groupErr) {
+      console.error('Error posting QR to group chat:', groupErr);
     }
 
     res.status(201).json({ 
@@ -355,6 +404,54 @@ export const sendWorkQRToWorkers = async (req, res) => {
         qrCode: schedule.qrCode,
         actionUrl: `/work-qr/${eventId}`
       });
+    }
+
+    // Also post QR into event's group chat (if exists)
+    try {
+  let group = await GroupChat.findOne({ eventId, createdBy: req.userId });
+  if (!group) group = await GroupChat.findOne({ eventId });
+      if (group) {
+        group.messages.push({
+          senderId: req.userId,
+          text: `📱 Work Hours QR Code\n\nScan this QR code to track your work hours for ${event.title}\n\n⏰ Use this for check-in and check-out`,
+          type: 'system'
+        });
+        group.lastMessage = group.messages[group.messages.length - 1].text;
+        group.lastMessageAt = new Date();
+        await group.save();
+
+        const workerParticipants = group.participants.filter(p => p.toString() !== req.userId.toString());
+        for (const participant of workerParticipants) {
+          await createNotification(participant, {
+            type: 'qr_code',
+            title: 'Work QR Code Shared',
+            message: `Work hours QR code for ${event.title} has been posted in the event group. Tap to view and start tracking.`,
+            relatedId: eventId,
+            relatedModel: 'Event',
+            actionUrl: `/work-qr/${eventId}`,
+            metadata: { qrToken: schedule.qrToken, qrCode: schedule.qrCode }
+          });
+
+          io.to(`user_${participant}`).emit('notification', {
+            type: 'qr_code',
+            message: `Work QR code posted in group for ${event.title}`,
+            qrCode: schedule.qrCode,
+            actionUrl: `/work-qr/${eventId}`
+          });
+        }
+
+        const messageWithQR = {
+          ...group.messages[group.messages.length - 1].toObject?.() ?? group.messages[group.messages.length - 1],
+          qrCode: schedule.qrCode
+        };
+        io.to(`group_${group._id}`).emit('group-message', {
+          groupId: group._id,
+          message: messageWithQR,
+          qrCode: schedule.qrCode
+        });
+      }
+    } catch (groupErr) {
+      console.error('Error posting QR to group chat:', groupErr);
     }
 
     res.json({ 

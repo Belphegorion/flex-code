@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -29,11 +29,11 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-md transition-colors sticky top-0 z-50">
+    <nav className="sticky top-0 z-[9999]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between items-center h-16 nav-glass p-2 rounded-md">
           <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+            <Link to="/" className="text-lg font-bold text-white/95 hover:text-white transition-colors">
               EVENTFLEX
             </Link>
           </div>
@@ -42,7 +42,7 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-4">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-lg btn-ghost"
               aria-label="Toggle theme"
             >
               {isDark ? <FiSun className="text-yellow-400" size={20} /> : <FiMoon className="text-gray-600" size={20} />}
@@ -60,12 +60,17 @@ const Navbar = () => {
             )}
             {user ? (
               <>
+                {user.role === 'worker' && (
+                  <NavLink to="/jobs" className={({ isActive }) => isActive ? 'nav-link font-semibold text-primary-600' : 'nav-link'}>
+                    Jobs
+                  </NavLink>
+                )}
                 <Link to={getDashboardLink()} className="nav-link">
                   Dashboard
                 </Link>
                 <Link to={`/profile/${user.id}`} className="flex items-center nav-link">
                   <FiUser className="mr-1" />
-                  <span className="max-w-[100px] truncate">{user.name}</span>
+                  <span className="max-w-[140px] truncate">{user.name}</span>
                 </Link>
                 <button onClick={handleLogout} className="flex items-center nav-link">
                   <FiLogOut className="mr-1" />
@@ -88,7 +93,7 @@ const Navbar = () => {
           <div className="md:hidden flex items-center space-x-2">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-lg btn-ghost"
               aria-label="Toggle theme"
             >
               {isDark ? <FiSun className="text-yellow-400" size={20} /> : <FiMoon className="text-gray-600" size={20} />}
@@ -114,8 +119,23 @@ const Navbar = () => {
             className="md:hidden border-t border-gray-200 dark:border-gray-700 overflow-hidden"
           >
             <div className="px-4 py-4 space-y-3">
+              {/* Notification bell on mobile */}
+              {user && (
+                <div className="flex items-center justify-end mb-2">
+                  <NotificationBell />
+                </div>
+              )}
               {user ? (
                 <>
+                  {user.role === 'worker' && (
+                    <Link
+                      to="/jobs"
+                      className="block py-2 nav-link"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Jobs
+                    </Link>
+                  )}
                   <Link 
                     to={getDashboardLink()} 
                     className="block py-2 nav-link"

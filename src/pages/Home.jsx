@@ -40,55 +40,40 @@ const Home = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen">
-        {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 dark:from-primary-800 dark:via-primary-900 dark:to-gray-900 text-white py-24 overflow-hidden">
-          <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-primary-900/50 to-transparent"></div>
-          
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-center max-w-4xl mx-auto"
-            >
-              <motion.div
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.5 }}
-                className="inline-block mb-4 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm font-medium"
-              >
-                🚀 Trusted by 10,000+ Event Professionals
-              </motion.div>
-              
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-                Find Your Perfect
-                <span className="block bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">
-                  Event Match
-                </span>
-              </h1>
-              
-              <p className="text-xl md:text-2xl mb-10 text-primary-100 leading-relaxed">
-                Connect with top talent or discover your next opportunity.
-                <span className="block mt-2">Powered by AI. Secured by escrow. Built for success.</span>
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Link 
-                  to="/signup" 
-                  className="w-full sm:w-auto bg-white text-primary-600 px-10 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-xl"
+      <div className="min-h-screen landing-page">
+        {/* Hero Section (modern framed hero) */}
+        <section className="py-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="hero-banner p-6">
+              <div className="hero-inner">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="space-y-4"
                 >
-                  Get Started Free
-                </Link>
-                <Link 
-                  to="/login" 
-                  className="w-full sm:w-auto border-2 border-white/30 backdrop-blur-sm bg-white/5 px-10 py-4 rounded-xl font-semibold hover:bg-white/10 transition-all"
+                  <div className="inline-block px-4 py-2 bg-white/5 backdrop-blur-sm rounded-full text-sm font-medium">🚀 Trusted by 10,000+ Event Professionals</div>
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">BUSINESS EXPERTISE WITH PERSPECTIVE</h1>
+                  <p className="text-lg text-gray-300 max-w-xl">Connect with top talent or discover your next opportunity. Built for success with secure payments and real-time collaboration.</p>
+                  <div className="mt-4 flex gap-4">
+                    <Link to="/signup" className="hero-cta">Get Started</Link>
+                    <Link to="/jobs" className="btn-ghost">Browse Jobs</Link>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="flex items-center justify-center"
                 >
-                  Sign In
-                </Link>
+                  <div className="rounded-image-frame w-80 h-56 flex items-center justify-center">
+                    {/* Decorative gradient placeholder (was an invalid image reference) */}
+                    <div className="w-full h-full bg-gradient-to-br from-primary-400 to-primary-700" aria-hidden="true" />
+                  </div>
+                </motion.div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </section>
 

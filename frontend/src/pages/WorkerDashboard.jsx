@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { FiClock, FiCheckCircle, FiXCircle, FiCalendar } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/common/Layout';
 import StartWorkButton from '../components/work/StartWorkButton';
 import api from '../services/api';
@@ -14,6 +15,7 @@ export default function WorkerDashboard() {
     fetchApplications();
     fetchAcceptedJobs();
   }, []);
+  const navigate = useNavigate();
 
   const fetchApplications = async () => {
     try {
@@ -123,11 +125,11 @@ export default function WorkerDashboard() {
               My Applications ({applications.length})
             </h2>
             
-            {applications.length === 0 ? (
+                {applications.length === 0 ? (
               <div className="text-center py-8">
                 <FiClock className="mx-auto text-gray-400 mb-4" size={48} />
                 <p className="text-gray-500 mb-4">No applications yet</p>
-                <button className="btn-primary">Find Work</button>
+                <button onClick={() => navigate('/jobs')} className="btn-primary">Find Work</button>
               </div>
             ) : (
               <div className="space-y-4 max-h-96 overflow-y-auto">

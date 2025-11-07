@@ -3,6 +3,8 @@ import Job from '../models/Job.js';
 import User from '../models/User.js';
 import GroupChat from '../models/GroupChat.js';
 import Event from '../models/Event.js';
+import WorkSession from '../models/WorkSession.js';
+import WorkSchedule from '../models/WorkSchedule.js';
 import { scheduleReliabilityUpdate, scheduleJobReminder } from '../utils/jobQueue.js';
 import { createNotification } from './notificationController.js';
 
@@ -261,6 +263,67 @@ export const checkIn = async (req, res) => {
       timestamp: new Date(),
       location
     });
+
+    // --- Sync with WorkSession (work-schedule) if a schedule exists for the job's event
+    try {
+      const jobDoc = await Job.findById(jobId).lean();
+      const eventId = jobDoc?.eventId;
+
+      if (eventId) {
+        // Find active schedule for this event
+        const schedule = await WorkSchedule.findOne({
+          eventId,
+          isActive: true,
+          qrExpiry: { $gt: new Date() }
+        });
+
+        if (schedule) {
+          const today = new Date().toISOString().split('T')[0];
+
+          if (type === 'check-in') {
+            // create a WorkSession if none exists for today
+            const existingSession = await WorkSession.findOne({
+              eventId,
+              workerId: req.userId,
+              jobId,
+              date: today,
+              status: 'checked-in'
+            });
+
+            if (!existingSession) {
+              await WorkSession.create({
+                eventId,
+                workerId: req.userId,
+                jobId,
+                checkInTime: new Date(),
+                hourlyRate: jobDoc?.payPerPerson || 0,
+                date: today
+              });
+            }
+          }
+
+          if (type === 'check-out') {
+            // find active session and close it
+            const session = await WorkSession.findOne({
+              eventId,
+              workerId: req.userId,
+              jobId,
+              date: today,
+              status: 'checked-in'
+            });
+
+            if (session) {
+              session.checkOutTime = new Date();
+              session.status = 'checked-out';
+              await session.save(); // pre-save computes totalHours & earnings
+            }
+          }
+        }
+      }
+    } catch (syncErr) {
+      // Non-fatal: keep application timestamp flow working even if sync fails
+      console.error('WorkSession sync error:', syncErr);
+    }
 
     // Calculate hours worked if check-out
     if (type === 'check-out') {
